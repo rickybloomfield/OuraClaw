@@ -64,64 +64,52 @@ interface ChannelTarget {
   target: string;
 }
 
+function getChannelConfig(channelId: string): any {
+  try {
+    const output = execSync(`openclaw config get channels.${channelId}`, {
+      encoding: "utf-8",
+      timeout: 10_000,
+    });
+    return JSON.parse(output);
+  } catch {
+    return null;
+  }
+}
+
 function getConfiguredChannelTargets(): ChannelTarget[] {
+  // First, get the list of configured channels
+  let channelIds: string[] = [];
   try {
     const output = execSync("openclaw channels list --json --no-usage", {
       encoding: "utf-8",
       timeout: 10_000,
     });
     const data = JSON.parse(output);
-    const targets: ChannelTarget[] = [];
-
-    // data is expected to be an object keyed by channel ID,
-    // each with an accounts object keyed by account ID
-    if (data && typeof data === "object") {
-      for (const [channelId, channelConf] of Object.entries(data as Record<string, any>)) {
-        const accounts = channelConf?.accounts;
-        if (accounts && typeof accounts === "object") {
-          for (const [accountId, _accountConf] of Object.entries(accounts as Record<string, any>)) {
-            const target = `${channelId}:${accountId}`;
-            const label = accountId === "default" ? channelId : `${channelId} (${accountId})`;
-            targets.push({ label, channel: channelId, target });
-          }
-        } else {
-          // Channel exists but no sub-accounts — treat the channel itself as the target
-          targets.push({ label: channelId, channel: channelId, target: channelId });
-        }
-      }
+    const chat = data?.chat;
+    if (chat && typeof chat === "object") {
+      channelIds = Object.keys(chat);
     }
-
-    return targets;
-  } catch {
-    // JSON parse failed or command errored — fall back to text parsing
-    return getConfiguredChannelTargetsFallback();
-  }
-}
-
-function getConfiguredChannelTargetsFallback(): ChannelTarget[] {
-  try {
-    const output = execSync("openclaw channels list", {
-      encoding: "utf-8",
-      timeout: 10_000,
-    });
-    const targets: ChannelTarget[] = [];
-    for (const line of output.split("\n")) {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith("─") || trimmed.startsWith("=")) continue;
-      const match = trimmed.match(
-        /\b(imessage|signal|slack|discord|telegram|whatsapp|googlechat|mattermost|msteams)\b/i,
-      );
-      if (match) {
-        const id = match[1].toLowerCase();
-        if (!targets.some((t) => t.channel === id)) {
-          targets.push({ label: id, channel: id, target: id });
-        }
-      }
-    }
-    return targets;
   } catch {
     return [];
   }
+
+  // Then read each channel's config to get allowFrom targets
+  const targets: ChannelTarget[] = [];
+  for (const channelId of channelIds) {
+    const config = getChannelConfig(channelId);
+    if (!config) continue;
+
+    const allowFrom: string[] = config.allowFrom || [];
+    for (const contact of allowFrom) {
+      targets.push({
+        label: `${channelId} → ${contact}`,
+        channel: channelId,
+        target: contact,
+      });
+    }
+  }
+
+  return targets;
 }
 
 export function registerCli(api: any) {
