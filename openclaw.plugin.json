@@ -1,0 +1,83 @@
+{
+  "name": "ouraclaw",
+  "displayName": "OuraClaw",
+  "description": "Oura Ring health data integration for OpenClaw",
+  "version": "0.1.0",
+  "configSchema": {
+    "type": "object",
+    "properties": {
+      "clientId": {
+        "type": "string",
+        "description": "Oura OAuth2 Client ID"
+      },
+      "clientSecret": {
+        "type": "string",
+        "description": "Oura OAuth2 Client Secret"
+      },
+      "accessToken": {
+        "type": "string",
+        "description": "Oura API access token"
+      },
+      "refreshToken": {
+        "type": "string",
+        "description": "Oura API refresh token"
+      },
+      "tokenExpiresAt": {
+        "type": "number",
+        "description": "Token expiry timestamp (ms)"
+      },
+      "preferredChannel": {
+        "type": "string",
+        "description": "Delivery channel (imessage, slack, discord, telegram, or default)",
+        "default": "default"
+      },
+      "preferredChannelTarget": {
+        "type": "string",
+        "description": "Channel target (phone number, webhook URL, chat ID, etc.)"
+      },
+      "morningTime": {
+        "type": "string",
+        "description": "Morning summary time in HH:MM format",
+        "default": "07:00"
+      },
+      "eveningTime": {
+        "type": "string",
+        "description": "Evening summary time in HH:MM format",
+        "default": "21:00"
+      },
+      "timezone": {
+        "type": "string",
+        "description": "IANA timezone (e.g. America/New_York)"
+      },
+      "scheduledMessages": {
+        "type": "boolean",
+        "description": "Whether to enable scheduled morning/evening summaries",
+        "default": true
+      },
+      "morningCronJobId": {
+        "type": "string",
+        "description": "ID of the morning cron job"
+      },
+      "eveningCronJobId": {
+        "type": "string",
+        "description": "ID of the evening cron job"
+      }
+    },
+    "required": []
+  },
+  "uiHints": {
+    "sensitive": [
+      "clientSecret",
+      "accessToken",
+      "refreshToken"
+    ],
+    "hidden": [
+      "tokenExpiresAt",
+      "morningCronJobId",
+      "eveningCronJobId"
+    ]
+  },
+  "skills": [
+    "skills/oura"
+  ]
+}

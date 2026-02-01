@@ -1,0 +1,29 @@
+{
+  "name": "@ouraclaw/ouraclaw",
+  "version": "0.1.0",
+  "description": "Oura Ring plugin and skill for OpenClaw",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "openclaw": {
+    "extensions": [
+      "./dist/index.js"
+    ]
+  },
+  "keywords": [
+    "openclaw",
+    "oura",
+    "health",
+    "sleep",
+    "wearable"
+  ],
+  "author": "Ricky Bloomfield",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^25.1.0",
+    "typescript": "^5.4.0"
+  }
+}
