@@ -37,13 +37,21 @@ function confirm(rl: readline.Interface, question: string, defaultYes: boolean =
   });
 }
 
-function select(rl: readline.Interface, question: string, choices: string[]): Promise<string> {
+function select(rl: readline.Interface, question: string, choices: string[], defaultIndex?: number): Promise<string> {
   return new Promise((resolve) => {
     console.log(question);
-    choices.forEach((c, i) => console.log(`  ${i + 1}. ${c}`));
-    rl.question(`Choose [1-${choices.length}]: `, (answer) => {
+    choices.forEach((c, i) => {
+      const marker = defaultIndex === i ? " *" : "";
+      console.log(`  ${i + 1}. ${c}${marker}`);
+    });
+    const defaultHint = defaultIndex !== undefined ? ` (${defaultIndex + 1})` : "";
+    rl.question(`Choose [1-${choices.length}]${defaultHint}: `, (answer) => {
+      if (answer.trim() === "" && defaultIndex !== undefined) {
+        resolve(choices[defaultIndex]);
+        return;
+      }
       const idx = parseInt(answer.trim(), 10) - 1;
-      resolve(choices[idx] || choices[0]);
+      resolve(choices[idx] || choices[defaultIndex ?? 0]);
     });
   });
 }
@@ -220,10 +228,22 @@ async function setupCommand(): Promise<void> {
         "default (active channel at delivery time)",
         ...availableTargets.map((t) => t.label),
       ];
-      if (isRerun && existing.preferredChannel && existing.preferredChannel !== "default") {
-        console.log(`  Current: ${existing.preferredChannel}${existing.preferredChannelTarget ? ` → ${existing.preferredChannelTarget}` : ""}`);
+
+      // Find the existing selection to use as default
+      let defaultIdx = 0;
+      if (isRerun && existing.preferredChannel && existing.preferredChannelTarget) {
+        const existingLabel = availableTargets.find(
+          (t) => t.channel === existing.preferredChannel && t.target === existing.preferredChannelTarget,
+        )?.label;
+        if (existingLabel) {
+          const idx = choices.indexOf(existingLabel);
+          if (idx >= 0) defaultIdx = idx;
+        }
+      } else if (isRerun && existing.preferredChannel === "default") {
+        defaultIdx = 0;
       }
-      const chosen = await select(rl, "Deliver summaries to:", choices);
+
+      const chosen = await select(rl, "Deliver summaries to:", choices, defaultIdx);
       if (!chosen.startsWith("default")) {
         const match = availableTargets.find((t) => t.label === chosen);
         if (match) {
