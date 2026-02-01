@@ -11,6 +11,18 @@ function runOpenclaw(args: string[]): string {
   return execFileSync("openclaw", args, { encoding: "utf-8" }).trim();
 }
 
+function findJobIdByName(name: string): string | null {
+  try {
+    const output = runOpenclaw(["cron", "list", "--json"]);
+    const data = JSON.parse(output);
+    const jobs: any[] = Array.isArray(data) ? data : data?.jobs || [];
+    const job = jobs.find((j: any) => j.name === name);
+    return job?.id || null;
+  } catch {
+    return null;
+  }
+}
+
 export function createCronJobs(config: OuraConfig): void {
   const timezone = config.timezone || "UTC";
   const morningTime = config.morningTime || "07:00";
@@ -30,7 +42,7 @@ export function createCronJobs(config: OuraConfig): void {
 
   const morningArgs = [
     "cron", "add",
-    "--name", "ouraclaw-morning",
+    "--name", "OuraClaw Morning Summary",
     "--cron", timeToCron(morningTime),
     "--tz", timezone,
     "--session", "isolated",
@@ -57,7 +69,7 @@ export function createCronJobs(config: OuraConfig): void {
 
   const eveningArgs = [
     "cron", "add",
-    "--name", "ouraclaw-evening",
+    "--name", "OuraClaw Evening Summary",
     "--cron", timeToCron(eveningTime),
     "--tz", timezone,
     "--session", "isolated",
@@ -74,27 +86,45 @@ export function createCronJobs(config: OuraConfig): void {
 
   runOpenclaw(eveningArgs);
 
+  // Look up the UUIDs that were just assigned
+  const morningId = findJobIdByName("OuraClaw Morning Summary");
+  const eveningId = findJobIdByName("OuraClaw Evening Summary");
+
   updateConfig({
-    morningCronJobId: "ouraclaw-morning",
-    eveningCronJobId: "ouraclaw-evening",
+    morningCronJobId: morningId || undefined,
+    eveningCronJobId: eveningId || undefined,
   });
 }
 
 export function removeCronJobs(config: OuraConfig): void {
+  // Try removing by stored UUID first
   if (config.morningCronJobId) {
     try {
-      runOpenclaw(["cron", "remove", "--name", config.morningCronJobId]);
+      runOpenclaw(["cron", "remove", config.morningCronJobId]);
     } catch {
-      // Job may not exist yet
+      // Job may not exist
     }
   }
   if (config.eveningCronJobId) {
     try {
-      runOpenclaw(["cron", "remove", "--name", config.eveningCronJobId]);
+      runOpenclaw(["cron", "remove", config.eveningCronJobId]);
     } catch {
-      // Job may not exist yet
+      // Job may not exist
     }
   }
+
+  // Also try by name in case UUIDs weren't stored (e.g., upgrade from older version)
+  for (const name of ["OuraClaw Morning Summary", "OuraClaw Evening Summary", "ouraclaw-morning", "ouraclaw-evening"]) {
+    const id = findJobIdByName(name);
+    if (id && id !== config.morningCronJobId && id !== config.eveningCronJobId) {
+      try {
+        runOpenclaw(["cron", "remove", id]);
+      } catch {
+        // Job may not exist
+      }
+    }
+  }
+
   updateConfig({
     morningCronJobId: undefined,
     eveningCronJobId: undefined,
