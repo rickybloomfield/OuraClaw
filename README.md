@@ -1,6 +1,6 @@
 # OuraClaw
 
-Oura Ring plugin and skill for [OpenClaw](https://github.com/nickarora/openclaw). Brings your sleep, readiness, activity, and stress data into your agent conversations.
+Oura Ring plugin and skill for [OpenClaw](https://openclaw.ai). Brings your sleep, readiness, activity, and stress data into your agent conversations.
 
 ## Features
 
@@ -11,7 +11,7 @@ Oura Ring plugin and skill for [OpenClaw](https://github.com/nickarora/openclaw)
 
 ## Prerequisites
 
-- [OpenClaw](https://github.com/nickarora/openclaw) installed and configured
+- [OpenClaw](https://openclaw.ai) installed and configured
 - An [Oura Ring](https://ouraring.com) account with data
 
 ## Installation
