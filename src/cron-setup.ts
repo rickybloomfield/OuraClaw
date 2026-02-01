@@ -33,9 +33,10 @@ export function createCronJobs(config: OuraConfig): void {
   // Morning job
   const morningMsg = [
     "Fetch my Oura Ring data for this morning's summary.",
-    "Use the oura_data tool to get daily_sleep, daily_readiness, and daily_stress for today.",
-    "Also fetch the detailed sleep periods using the sleep endpoint.",
+    "Use the oura_data tool to get daily_sleep, sleep (detailed periods), daily_readiness, daily_activity, and daily_stress for today.",
+    "Also fetch yesterday's daily_activity as a fallback in case today's isn't ready yet.",
     "Format the results as a morning health summary using the oura skill's morning template.",
+    "Remember: 8-10 lines max, include date, use emoji sparingly, warm but not cheesy, no app links.",
   ].join(" ");
 
   runOpenclaw(
@@ -45,9 +46,9 @@ export function createCronJobs(config: OuraConfig): void {
   // Evening job
   const eveningMsg = [
     "Fetch my Oura Ring data for this evening's summary.",
-    "Use the oura_data tool to get daily_activity, daily_readiness, and daily_stress for today.",
-    "Also fetch daily_sleep for a sleep recap.",
+    "Use the oura_data tool to get daily_activity, daily_readiness, daily_stress, and daily_sleep for today.",
     "Format the results as an evening health summary using the oura skill's evening template.",
+    "Remember: 6-8 lines max, include date, focus on activity, mention last night's sleep as a recap, end with a warm wind-down nudge, no app links.",
   ].join(" ");
 
   runOpenclaw(

@@ -45,46 +45,58 @@ You have access to the user's Oura Ring data through the `oura_data` tool. Use i
 
 ## Morning Summary Template
 
-When delivering a morning summary, fetch `daily_sleep`, `sleep`, `daily_readiness`, and `daily_stress` for today, then format as:
+When delivering a morning summary, fetch `daily_sleep`, `sleep` (detailed periods), `daily_readiness`, `daily_activity`, and `daily_stress` for today. Also fetch yesterday's `daily_activity` as a fallback.
+
+Format rules:
+- Start with "Good morning!" and today's date
+- **Sleep**: score with label, total sleep time (convert seconds to Xh Ym), key contributors that are notably high or low. From the detailed `sleep` endpoint, include lowest resting heart rate, average overnight heart rate, and average HRV. Show deep, REM, and light durations in minutes.
+- **Readiness**: score with label, body temperature deviation, HRV balance, recovery index. Call out anything that's dragging the score down.
+- **Activity**: use today's `daily_activity` if available (score, steps, active calories). If score is null or data is missing, use yesterday's activity instead and note that it's yesterday's data.
+- **Stress**: mention if data is available (normal, high, etc.). If no stress data, skip it.
+- No app links at the end.
+- Keep it concise — 8–10 lines max. Use emoji sparingly. Warm but not cheesy.
+
+Example tone:
 
 ```
-Good morning! Here's your overnight recap:
+Good morning! Here's your recap for Monday, Jan 27.
 
-**Sleep: [score] ([label])**
-- Total: [Xh Ym] | Efficiency: [X]%
-- Deep: [Xh Ym] | REM: [Xh Ym] | Light: [Xh Ym]
-- Avg HR: [X] bpm | Lowest: [X] bpm | Avg HRV: [X] ms
-- Bedtime: [time] → [time]
+😴 Sleep: 82 (Good) — 7h 12m total
+Deep 58m | REM 1h 24m | Light 4h 50m
+Lowest HR 52 bpm | Avg HR 58 bpm | HRV 42 ms
 
-**Readiness: [score] ([label])**
-- HRV Balance: [X] | Resting HR: [X]
-- Recovery Index: [X] | Sleep Balance: [X]
+💪 Readiness: 78 (Good)
+Body temp +0.1°C | HRV balance solid | Recovery index slightly low
 
-**Stress: [day_summary or stress_high/recovery_high summary]**
+🏃 Activity (yesterday): 74 (Good) — 8,241 steps, 312 active cal
 
-[One sentence personalized note based on the data — e.g., "Your deep sleep was strong last night. Consider a moderate workout today given your solid readiness score."]
+Stress: normal range
+
+Solid night overall — deep sleep was a bit short but REM made up for it. Enjoy your day!
 ```
 
 ## Evening Summary Template
 
-When delivering an evening summary, fetch `daily_activity`, `daily_readiness`, `daily_stress`, and `daily_sleep` for today, then format as:
+When delivering an evening summary, fetch `daily_activity`, `daily_readiness`, `daily_stress`, and `daily_sleep` for today.
+
+Format rules:
+- Start with "Good evening!" and today's date
+- Focus on today's **activity**: score, steps, active calories, total calories.
+- Include today's **readiness** and **stress**.
+- Briefly mention last night's sleep score as a one-line recap.
+- End with a short, genuine motivational nudge to wind down and get to bed soon for good recovery. Be warm, not preachy.
+- Keep it concise — 6–8 lines max. Use emoji sparingly.
+
+Example tone:
 
 ```
-Good evening! Here's your day in review:
+Good evening! Here's your day in review for Monday, Jan 27.
 
-**Activity: [score] ([label])**
-- Steps: [X] | Active calories: [X] kcal
-- High activity: [Xh Ym] | Medium: [Xh Ym]
+🏃 Activity: 81 (Good) — 9,432 steps, 387 active cal, 2,145 total cal
+📊 Readiness: 78 (Good) | Stress: normal range
+😴 Last night's sleep: 82 (Good)
 
-**Readiness: [score] ([label])**
-- Key: [top 1–2 contributors or notable changes]
-
-**Stress: [day_summary or stress_high/recovery_high summary]**
-
-**Last Night's Sleep: [score] ([label])** (recap)
-- Total: [Xh Ym] | Efficiency: [X]%
-
-[One sentence wind-down note — e.g., "You hit your activity goals today. With readiness looking good, aim for your usual bedtime to keep the streak going."]
+Nice active day — you moved well. Wind down soon and aim for a solid bedtime to keep the momentum going.
 ```
 
 ## Ad-hoc Query Mapping
