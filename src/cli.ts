@@ -114,35 +114,51 @@ export function registerCli(api: any) {
 
 async function setupCommand(): Promise<void> {
   const rl = createPromptInterface();
+  const existing = readConfig();
+  const isRerun = !!(existing.clientId || existing.accessToken);
 
   try {
     console.log("\n=== OuraClaw Setup ===\n");
-    console.log("Before proceeding, create an Oura application:");
-    console.log("  1. Go to https://developer.ouraring.com");
-    console.log('  2. Navigate to "My Applications"');
-    console.log("  3. Create a new application");
-    console.log("  4. Set the redirect URI to: http://localhost:9876/callback");
-    console.log("");
+
+    if (isRerun) {
+      console.log("Existing configuration detected. Press Enter to keep current values.\n");
+    } else {
+      console.log("Before proceeding, create an Oura application:");
+      console.log("  1. Go to https://developer.ouraring.com");
+      console.log('  2. Navigate to "My Applications"');
+      console.log("  3. Create a new application");
+      console.log("  4. Set the redirect URI to: http://localhost:9876/callback");
+      console.log("");
+    }
 
     // Step 1: Credentials
-    const clientId = await ask(rl, "Enter your Oura Client ID:");
-    const clientSecret = await ask(rl, "Enter your Oura Client Secret:");
+    const clientId = await ask(rl, "Oura Client ID:", existing.clientId);
+    const clientSecret = await ask(rl, "Oura Client Secret:", existing.clientSecret);
 
     updateConfig({ clientId, clientSecret });
 
     // Step 2: OAuth flow
-    console.log("\nStarting OAuth authorization...");
-    const authorizeUrl = buildAuthorizeUrl(clientId);
-    console.log("Opening browser to authorize OuraClaw...");
-    openUrl(authorizeUrl);
+    let skipOAuth = false;
+    if (isRerun && existing.accessToken) {
+      skipOAuth = !(await confirm(rl, "Re-authorize with Oura? (only needed if tokens are broken)", false));
+    }
 
-    console.log("Waiting for OAuth callback on http://localhost:9876/callback ...");
-    const code = await captureOAuthCallback();
-    console.log("Authorization code received! Exchanging for tokens...");
+    if (!skipOAuth) {
+      console.log("\nStarting OAuth authorization...");
+      const authorizeUrl = buildAuthorizeUrl(clientId);
+      console.log("Opening browser to authorize OuraClaw...");
+      openUrl(authorizeUrl);
 
-    const tokenResponse = await exchangeCodeForTokens(clientId, clientSecret, code);
-    saveTokens(tokenResponse);
-    console.log("Tokens saved successfully.\n");
+      console.log("Waiting for OAuth callback on http://localhost:9876/callback ...");
+      const code = await captureOAuthCallback();
+      console.log("Authorization code received! Exchanging for tokens...");
+
+      const tokenResponse = await exchangeCodeForTokens(clientId, clientSecret, code);
+      saveTokens(tokenResponse);
+      console.log("Tokens saved successfully.\n");
+    } else {
+      console.log("Skipping OAuth — keeping existing tokens.\n");
+    }
 
     // Step 3: Channel preference
     const configuredChannels = getConfiguredChannels();
@@ -155,6 +171,10 @@ async function setupCommand(): Promise<void> {
     if (channelChoices.length === 1) {
       console.log("No messaging channels configured. Using default (active channel at delivery time).");
     } else {
+      // If re-running and they had a channel set, show it as the current value
+      if (isRerun && existing.preferredChannel && existing.preferredChannel !== "default") {
+        console.log(`  Current channel: ${existing.preferredChannel}`);
+      }
       const channelChoice = await select(rl, "Preferred delivery channel:", channelChoices);
       channel = channelChoice.startsWith("default") ? "default" : channelChoice;
     }
@@ -163,7 +183,8 @@ async function setupCommand(): Promise<void> {
     if (channel !== "default") {
       channelTarget = await ask(
         rl,
-        `Enter the target for ${channel} (phone number, webhook URL, chat ID, etc.):`,
+        `Target for ${channel} (phone number, webhook URL, chat ID, etc.):`,
+        existing.preferredChannel === channel ? existing.preferredChannelTarget : undefined,
       );
     }
 
@@ -176,12 +197,12 @@ async function setupCommand(): Promise<void> {
     const enableScheduled = await confirm(
       rl,
       "Enable scheduled morning & evening summaries?",
-      true,
+      existing.scheduledMessages !== false,
     );
 
     if (enableScheduled) {
-      const morningTime = await ask(rl, "Morning summary time (HH:MM):", "07:00");
-      const eveningTime = await ask(rl, "Evening summary time (HH:MM):", "21:00");
+      const morningTime = await ask(rl, "Morning summary time (HH:MM):", existing.morningTime || "07:00");
+      const eveningTime = await ask(rl, "Evening summary time (HH:MM):", existing.eveningTime || "21:00");
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       console.log(`  Timezone: ${timezone} (detected from system)`);
 
