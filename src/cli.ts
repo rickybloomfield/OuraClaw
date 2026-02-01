@@ -159,7 +159,7 @@ async function setupCommand(): Promise<void> {
     console.log("\n=== OuraClaw Setup ===\n");
 
     if (isRerun) {
-      console.log("Existing configuration detected. Press Enter to keep current values.\n");
+      console.log("Existing configuration detected. Press Enter to keep current values or enter different values.\n");
     } else {
       console.log("Before proceeding, create an Oura application:");
       console.log("  1. Go to https://developer.ouraring.com");
