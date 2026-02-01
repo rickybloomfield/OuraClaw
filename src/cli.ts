@@ -1,5 +1,5 @@
 import readline from "readline";
-import { exec, execSync } from "child_process";
+import { exec, execSync, execFileSync } from "child_process";
 import { OuraConfig } from "./types";
 import {
   buildAuthorizeUrl,
@@ -58,6 +58,27 @@ function openUrl(url: string): void {
   exec(cmd);
 }
 
+function withProgress<T>(message: string, fn: () => T): T {
+  process.stdout.write(`${message}...`);
+  try {
+    const result = fn();
+    if (result instanceof Promise) {
+      return (result as any).then((val: T) => {
+        process.stdout.write(" done.\n");
+        return val;
+      }).catch((err: any) => {
+        process.stdout.write(" failed.\n");
+        throw err;
+      });
+    }
+    process.stdout.write(" done.\n");
+    return result;
+  } catch (err) {
+    process.stdout.write(" failed.\n");
+    throw err;
+  }
+}
+
 interface ChannelTarget {
   label: string;
   channel: string;
@@ -66,7 +87,7 @@ interface ChannelTarget {
 
 function getChannelConfig(channelId: string): any {
   try {
-    const output = execSync(`openclaw config get channels.${channelId}`, {
+    const output = execFileSync("openclaw", ["config", "get", `channels.${channelId}`], {
       encoding: "utf-8",
       timeout: 10_000,
     });
@@ -161,7 +182,7 @@ async function setupCommand(): Promise<void> {
     const clientId = await ask(rl, "Oura Client ID:", existing.clientId);
     const clientSecret = await ask(rl, "Oura Client Secret:", existing.clientSecret);
 
-    updateConfig({ clientId, clientSecret });
+    withProgress("Saving credentials", () => updateConfig({ clientId, clientSecret }));
 
     // Step 2: OAuth flow
     let skipOAuth = false;
@@ -170,24 +191,24 @@ async function setupCommand(): Promise<void> {
     }
 
     if (!skipOAuth) {
-      console.log("\nStarting OAuth authorization...");
       const authorizeUrl = buildAuthorizeUrl(clientId);
-      console.log("Opening browser to authorize OuraClaw...");
+      console.log("\nOpening browser to authorize OuraClaw...");
       openUrl(authorizeUrl);
 
       console.log("Waiting for OAuth callback on http://localhost:9876/callback ...");
       const code = await captureOAuthCallback();
-      console.log("Authorization code received! Exchanging for tokens...");
 
-      const tokenResponse = await exchangeCodeForTokens(clientId, clientSecret, code);
-      saveTokens(tokenResponse);
-      console.log("Tokens saved successfully.\n");
+      await withProgress("Exchanging code for tokens", async () => {
+        const tokenResponse = await exchangeCodeForTokens(clientId, clientSecret, code);
+        saveTokens(tokenResponse);
+      });
+      console.log("");
     } else {
       console.log("Skipping OAuth — keeping existing tokens.\n");
     }
 
     // Step 3: Channel + target preference
-    const availableTargets = getConfiguredChannelTargets();
+    const availableTargets = withProgress("Loading configured channels", () => getConfiguredChannelTargets());
 
     let channel = "default";
     let channelTarget: string | undefined;
@@ -237,15 +258,13 @@ async function setupCommand(): Promise<void> {
         timezone,
       });
 
-      createCronJobs(readConfig());
-      console.log("\nCron jobs created for morning and evening summaries.");
+      withProgress("\nCreating cron jobs", () => createCronJobs(readConfig()));
     } else {
       updateConfig({ scheduledMessages: false });
 
       const config = readConfig();
       if (config.morningCronJobId || config.eveningCronJobId) {
-        removeCronJobs(config);
-        console.log("\nExisting cron jobs removed.");
+        withProgress("Removing existing cron jobs", () => removeCronJobs(config));
       }
     }
 

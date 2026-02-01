@@ -1,4 +1,4 @@
-import { execSync } from "child_process";
+import { execFileSync } from "child_process";
 import { OuraConfig } from "./types";
 import { updateConfig } from "./token-store";
 
@@ -7,8 +7,8 @@ function timeToCron(time: string): string {
   return `${minutes} ${hours} * * *`;
 }
 
-function runOpenclaw(args: string): string {
-  return execSync(`openclaw ${args}`, { encoding: "utf-8" }).trim();
+function runOpenclaw(args: string[]): string {
+  return execFileSync("openclaw", args, { encoding: "utf-8" }).trim();
 }
 
 export function createCronJobs(config: OuraConfig): void {
@@ -19,17 +19,6 @@ export function createCronJobs(config: OuraConfig): void {
   // Remove existing jobs first
   removeCronJobs(config);
 
-  // Build delivery args
-  let deliverArgs = "";
-  if (config.preferredChannel && config.preferredChannel !== "default") {
-    deliverArgs = ` --deliver --channel ${config.preferredChannel}`;
-    if (config.preferredChannelTarget) {
-      deliverArgs += ` --to ${config.preferredChannelTarget}`;
-    }
-  } else {
-    deliverArgs = " --deliver";
-  }
-
   // Morning job
   const morningMsg = [
     "Fetch my Oura Ring data for this morning's summary.",
@@ -39,9 +28,24 @@ export function createCronJobs(config: OuraConfig): void {
     "Remember: 8-10 lines max, include date, use emoji sparingly, warm but not cheesy, no app links.",
   ].join(" ");
 
-  runOpenclaw(
-    `cron add --name "ouraclaw-morning" --cron "${timeToCron(morningTime)}" --tz "${timezone}" --session isolated --message "${morningMsg}"${deliverArgs}`,
-  );
+  const morningArgs = [
+    "cron", "add",
+    "--name", "ouraclaw-morning",
+    "--cron", timeToCron(morningTime),
+    "--tz", timezone,
+    "--session", "isolated",
+    "--message", morningMsg,
+    "--deliver",
+  ];
+
+  if (config.preferredChannel && config.preferredChannel !== "default") {
+    morningArgs.push("--channel", config.preferredChannel);
+    if (config.preferredChannelTarget) {
+      morningArgs.push("--to", config.preferredChannelTarget);
+    }
+  }
+
+  runOpenclaw(morningArgs);
 
   // Evening job
   const eveningMsg = [
@@ -51,9 +55,24 @@ export function createCronJobs(config: OuraConfig): void {
     "Remember: 6-8 lines max, include date, focus on activity, mention last night's sleep as a recap, end with a warm wind-down nudge, no app links.",
   ].join(" ");
 
-  runOpenclaw(
-    `cron add --name "ouraclaw-evening" --cron "${timeToCron(eveningTime)}" --tz "${timezone}" --session isolated --message "${eveningMsg}"${deliverArgs}`,
-  );
+  const eveningArgs = [
+    "cron", "add",
+    "--name", "ouraclaw-evening",
+    "--cron", timeToCron(eveningTime),
+    "--tz", timezone,
+    "--session", "isolated",
+    "--message", eveningMsg,
+    "--deliver",
+  ];
+
+  if (config.preferredChannel && config.preferredChannel !== "default") {
+    eveningArgs.push("--channel", config.preferredChannel);
+    if (config.preferredChannelTarget) {
+      eveningArgs.push("--to", config.preferredChannelTarget);
+    }
+  }
+
+  runOpenclaw(eveningArgs);
 
   updateConfig({
     morningCronJobId: "ouraclaw-morning",
@@ -64,14 +83,14 @@ export function createCronJobs(config: OuraConfig): void {
 export function removeCronJobs(config: OuraConfig): void {
   if (config.morningCronJobId) {
     try {
-      runOpenclaw(`cron remove --name "${config.morningCronJobId}"`);
+      runOpenclaw(["cron", "remove", "--name", config.morningCronJobId]);
     } catch {
       // Job may not exist yet
     }
   }
   if (config.eveningCronJobId) {
     try {
-      runOpenclaw(`cron remove --name "${config.eveningCronJobId}"`);
+      runOpenclaw(["cron", "remove", "--name", config.eveningCronJobId]);
     } catch {
       // Job may not exist yet
     }
