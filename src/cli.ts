@@ -1,26 +1,64 @@
+import readline from "readline";
+import { exec } from "child_process";
 import { OuraConfig } from "./types";
 import {
   buildAuthorizeUrl,
   captureOAuthCallback,
   exchangeCodeForTokens,
 } from "./oauth";
-import { saveTokens } from "./token-store";
+import { readConfig, updateConfig, saveTokens } from "./token-store";
 import { createCronJobs, removeCronJobs } from "./cron-setup";
 import { fetchOuraData } from "./oura-client";
 
-export interface CliContext {
-  getConfig: () => OuraConfig;
-  updateConfig: (updates: Partial<OuraConfig>) => void;
-  prompt: (message: string, defaultValue?: string) => Promise<string>;
-  select: (message: string, choices: string[]) => Promise<string>;
-  confirm: (message: string, defaultValue?: boolean) => Promise<boolean>;
-  log: (message: string) => void;
-  openUrl: (url: string) => void;
-  registerCronJob: (job: any) => void;
-  unregisterCronJob: (id: string) => void;
+function createPromptInterface(): readline.Interface {
+  return readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
 }
 
-export function registerCli(api: any, ctx: CliContext) {
+function ask(rl: readline.Interface, question: string, defaultValue?: string): Promise<string> {
+  const suffix = defaultValue ? ` (${defaultValue})` : "";
+  return new Promise((resolve) => {
+    rl.question(`${question}${suffix} `, (answer) => {
+      resolve(answer.trim() || defaultValue || "");
+    });
+  });
+}
+
+function confirm(rl: readline.Interface, question: string, defaultYes: boolean = true): Promise<boolean> {
+  const hint = defaultYes ? "[Y/n]" : "[y/N]";
+  return new Promise((resolve) => {
+    rl.question(`${question} ${hint} `, (answer) => {
+      const a = answer.trim().toLowerCase();
+      if (a === "") resolve(defaultYes);
+      else resolve(a === "y" || a === "yes");
+    });
+  });
+}
+
+function select(rl: readline.Interface, question: string, choices: string[]): Promise<string> {
+  return new Promise((resolve) => {
+    console.log(question);
+    choices.forEach((c, i) => console.log(`  ${i + 1}. ${c}`));
+    rl.question(`Choose [1-${choices.length}]: `, (answer) => {
+      const idx = parseInt(answer.trim(), 10) - 1;
+      resolve(choices[idx] || choices[0]);
+    });
+  });
+}
+
+function openUrl(url: string): void {
+  const cmd =
+    process.platform === "darwin"
+      ? `open "${url}"`
+      : process.platform === "win32"
+        ? `start "${url}"`
+        : `xdg-open "${url}"`;
+  exec(cmd);
+}
+
+export function registerCli(api: any) {
   api.registerCli(
     ({ program }: { program: any }) => {
       const ouraclaw = program
@@ -30,149 +68,148 @@ export function registerCli(api: any, ctx: CliContext) {
       ouraclaw
         .command("setup")
         .description("Set up Oura Ring connection and scheduled summaries")
-        .action(() => setupCommand(ctx));
+        .action(() => setupCommand());
 
       ouraclaw
         .command("status")
         .description("Show current OuraClaw connection status")
-        .action(() => statusCommand(ctx));
+        .action(() => statusCommand());
 
       ouraclaw
         .command("test")
         .description("Fetch today's Oura data to verify connection")
-        .action(() => testCommand(ctx));
+        .action(() => testCommand());
     },
     { commands: ["ouraclaw"] },
   );
 }
 
-async function setupCommand(ctx: CliContext): Promise<void> {
-  const { log, prompt, select, confirm, openUrl, getConfig, updateConfig } = ctx;
+async function setupCommand(): Promise<void> {
+  const rl = createPromptInterface();
 
-  log("\n=== OuraClaw Setup ===\n");
-  log("Before proceeding, create an Oura application:");
-  log("  1. Go to https://cloud.ouraring.com");
-  log('  2. Navigate to "My Applications"');
-  log("  3. Create a new application");
-  log("  4. Set the redirect URI to: http://localhost:9876/callback");
-  log("");
+  try {
+    console.log("\n=== OuraClaw Setup ===\n");
+    console.log("Before proceeding, create an Oura application:");
+    console.log("  1. Go to https://cloud.ouraring.com");
+    console.log('  2. Navigate to "My Applications"');
+    console.log("  3. Create a new application");
+    console.log("  4. Set the redirect URI to: http://localhost:9876/callback");
+    console.log("");
 
-  // Step 1: Credentials
-  const clientId = await prompt("Enter your Oura Client ID:");
-  const clientSecret = await prompt("Enter your Oura Client Secret:");
+    // Step 1: Credentials
+    const clientId = await ask(rl, "Enter your Oura Client ID:");
+    const clientSecret = await ask(rl, "Enter your Oura Client Secret:");
 
-  updateConfig({ clientId, clientSecret });
+    updateConfig({ clientId, clientSecret });
 
-  // Step 2: OAuth flow
-  log("\nStarting OAuth authorization...");
-  const authorizeUrl = buildAuthorizeUrl(clientId);
-  log(`Opening browser to authorize OuraClaw...`);
-  openUrl(authorizeUrl);
+    // Step 2: OAuth flow
+    console.log("\nStarting OAuth authorization...");
+    const authorizeUrl = buildAuthorizeUrl(clientId);
+    console.log("Opening browser to authorize OuraClaw...");
+    openUrl(authorizeUrl);
 
-  log("Waiting for OAuth callback on http://localhost:9876/callback ...");
-  const code = await captureOAuthCallback();
-  log("Authorization code received! Exchanging for tokens...");
+    console.log("Waiting for OAuth callback on http://localhost:9876/callback ...");
+    const code = await captureOAuthCallback();
+    console.log("Authorization code received! Exchanging for tokens...");
 
-  const tokenResponse = await exchangeCodeForTokens(clientId, clientSecret, code);
-  saveTokens(getConfig(), tokenResponse, updateConfig);
-  log("Tokens saved successfully.\n");
+    const tokenResponse = await exchangeCodeForTokens(clientId, clientSecret, code);
+    saveTokens(tokenResponse);
+    console.log("Tokens saved successfully.\n");
 
-  // Step 3: Channel preference
-  const channelChoice = await select("Preferred delivery channel:", [
-    "default (active channel at delivery time)",
-    "imessage",
-    "slack",
-    "discord",
-    "telegram",
-  ]);
+    // Step 3: Channel preference
+    const channelChoice = await select(rl, "Preferred delivery channel:", [
+      "default (active channel at delivery time)",
+      "imessage",
+      "slack",
+      "discord",
+      "telegram",
+    ]);
 
-  const channel = channelChoice.startsWith("default") ? "default" : channelChoice;
-  let channelTarget: string | undefined;
+    const channel = channelChoice.startsWith("default") ? "default" : channelChoice;
+    let channelTarget: string | undefined;
 
-  if (channel !== "default") {
-    channelTarget = await prompt(
-      `Enter the target for ${channel} (phone number, webhook URL, chat ID, etc.):`,
-    );
-  }
-
-  updateConfig({
-    preferredChannel: channel,
-    preferredChannelTarget: channelTarget,
-  });
-
-  // Step 4: Schedule
-  const enableScheduled = await confirm(
-    "Enable scheduled morning & evening summaries?",
-    true,
-  );
-
-  if (enableScheduled) {
-    const morningTime = await prompt("Morning summary time (HH:MM):", "07:00");
-    const eveningTime = await prompt("Evening summary time (HH:MM):", "21:00");
-    const timezone = await prompt(
-      "Timezone (e.g. America/New_York):",
-      Intl.DateTimeFormat().resolvedOptions().timeZone,
-    );
+    if (channel !== "default") {
+      channelTarget = await ask(
+        rl,
+        `Enter the target for ${channel} (phone number, webhook URL, chat ID, etc.):`,
+      );
+    }
 
     updateConfig({
-      scheduledMessages: true,
-      morningTime,
-      eveningTime,
-      timezone,
+      preferredChannel: channel,
+      preferredChannelTarget: channelTarget,
     });
 
-    // Remove existing cron jobs before creating new ones
-    const config = getConfig();
-    if (config.morningCronJobId || config.eveningCronJobId) {
-      removeCronJobs(config, updateConfig, ctx.unregisterCronJob);
+    // Step 4: Schedule
+    const enableScheduled = await confirm(
+      rl,
+      "Enable scheduled morning & evening summaries?",
+      true,
+    );
+
+    if (enableScheduled) {
+      const morningTime = await ask(rl, "Morning summary time (HH:MM):", "07:00");
+      const eveningTime = await ask(rl, "Evening summary time (HH:MM):", "21:00");
+      const timezone = await ask(
+        rl,
+        "Timezone (e.g. America/New_York):",
+        Intl.DateTimeFormat().resolvedOptions().timeZone,
+      );
+
+      updateConfig({
+        scheduledMessages: true,
+        morningTime,
+        eveningTime,
+        timezone,
+      });
+
+      createCronJobs(readConfig());
+      console.log("\nCron jobs created for morning and evening summaries.");
+    } else {
+      updateConfig({ scheduledMessages: false });
+
+      const config = readConfig();
+      if (config.morningCronJobId || config.eveningCronJobId) {
+        removeCronJobs(config);
+        console.log("\nExisting cron jobs removed.");
+      }
     }
 
-    createCronJobs(getConfig(), updateConfig, ctx.registerCronJob);
-    log("\nCron jobs created for morning and evening summaries.");
-  } else {
-    updateConfig({ scheduledMessages: false });
-
-    // Remove existing cron jobs if any
-    const config = getConfig();
-    if (config.morningCronJobId || config.eveningCronJobId) {
-      removeCronJobs(config, updateConfig, ctx.unregisterCronJob);
-      log("\nExisting cron jobs removed.");
+    // Summary
+    const finalConfig = readConfig();
+    console.log("\n=== Setup Complete ===");
+    console.log(`  Client ID: ${finalConfig.clientId}`);
+    console.log(`  Token expires: ${new Date(finalConfig.tokenExpiresAt!).toLocaleString()}`);
+    console.log(`  Channel: ${finalConfig.preferredChannel || "default"}`);
+    if (finalConfig.preferredChannelTarget) {
+      console.log(`  Channel target: ${finalConfig.preferredChannelTarget}`);
     }
+    if (finalConfig.scheduledMessages) {
+      console.log(`  Morning summary: ${finalConfig.morningTime} ${finalConfig.timezone}`);
+      console.log(`  Evening summary: ${finalConfig.eveningTime} ${finalConfig.timezone}`);
+    } else {
+      console.log("  Scheduled messages: disabled");
+    }
+    console.log("\nYou can now ask your agent about your Oura data!");
+    console.log('Try: "How did I sleep last night?"\n');
+  } finally {
+    rl.close();
   }
-
-  // Summary
-  const finalConfig = getConfig();
-  log("\n=== Setup Complete ===");
-  log(`  Client ID: ${finalConfig.clientId}`);
-  log(`  Token expires: ${new Date(finalConfig.tokenExpiresAt!).toLocaleString()}`);
-  log(`  Channel: ${finalConfig.preferredChannel || "default"}`);
-  if (finalConfig.preferredChannelTarget) {
-    log(`  Channel target: ${finalConfig.preferredChannelTarget}`);
-  }
-  if (finalConfig.scheduledMessages) {
-    log(`  Morning summary: ${finalConfig.morningTime} ${finalConfig.timezone}`);
-    log(`  Evening summary: ${finalConfig.eveningTime} ${finalConfig.timezone}`);
-  } else {
-    log("  Scheduled messages: disabled");
-  }
-  log("\nYou can now ask your agent about your Oura data!");
-  log('Try: "How did I sleep last night?"\n');
 }
 
-async function statusCommand(ctx: CliContext): Promise<void> {
-  const { log, getConfig } = ctx;
-  const config = getConfig();
+async function statusCommand(): Promise<void> {
+  const config = readConfig();
 
-  log("\n=== OuraClaw Status ===\n");
+  console.log("\n=== OuraClaw Status ===\n");
 
   if (!config.accessToken) {
-    log("  Status: Not connected");
-    log('  Run "openclaw ouraclaw setup" to get started.\n');
+    console.log("  Status: Not connected");
+    console.log('  Run "openclaw ouraclaw setup" to get started.\n');
     return;
   }
 
-  log("  Status: Connected");
-  log(`  Client ID: ${config.clientId || "not set"}`);
+  console.log("  Status: Connected");
+  console.log(`  Client ID: ${config.clientId || "not set"}`);
 
   if (config.tokenExpiresAt) {
     const expiry = new Date(config.tokenExpiresAt);
@@ -180,36 +217,35 @@ async function statusCommand(ctx: CliContext): Promise<void> {
     const hoursLeft = Math.round(
       (expiry.getTime() - now.getTime()) / (1000 * 60 * 60),
     );
-    log(`  Token expires: ${expiry.toLocaleString()} (${hoursLeft}h from now)`);
+    console.log(`  Token expires: ${expiry.toLocaleString()} (${hoursLeft}h from now)`);
   }
 
-  log(`  Channel: ${config.preferredChannel || "default"}`);
+  console.log(`  Channel: ${config.preferredChannel || "default"}`);
   if (config.preferredChannelTarget) {
-    log(`  Channel target: ${config.preferredChannelTarget}`);
+    console.log(`  Channel target: ${config.preferredChannelTarget}`);
   }
 
   if (config.scheduledMessages) {
-    log(`  Morning summary: ${config.morningTime} ${config.timezone}`);
-    log(`  Evening summary: ${config.eveningTime} ${config.timezone}`);
-    log(`  Morning job ID: ${config.morningCronJobId || "none"}`);
-    log(`  Evening job ID: ${config.eveningCronJobId || "none"}`);
+    console.log(`  Morning summary: ${config.morningTime} ${config.timezone}`);
+    console.log(`  Evening summary: ${config.eveningTime} ${config.timezone}`);
+    console.log(`  Morning job ID: ${config.morningCronJobId || "none"}`);
+    console.log(`  Evening job ID: ${config.eveningCronJobId || "none"}`);
   } else {
-    log("  Scheduled messages: disabled");
+    console.log("  Scheduled messages: disabled");
   }
 
-  log("");
+  console.log("");
 }
 
-async function testCommand(ctx: CliContext): Promise<void> {
-  const { log, getConfig } = ctx;
-  const config = getConfig();
+async function testCommand(): Promise<void> {
+  const config = readConfig();
 
   if (!config.accessToken) {
-    log('Not connected. Run "openclaw ouraclaw setup" first.');
+    console.log('Not connected. Run "openclaw ouraclaw setup" first.');
     return;
   }
 
-  log("\nFetching today's Oura data...\n");
+  console.log("\nFetching today's Oura data...\n");
 
   const today = new Date().toISOString().split("T")[0];
   const tomorrow = new Date(Date.now() + 86_400_000).toISOString().split("T")[0];
@@ -221,7 +257,7 @@ async function testCommand(ctx: CliContext): Promise<void> {
       today,
       tomorrow,
     );
-    log(`Daily Sleep: ${JSON.stringify(sleep, null, 2)}\n`);
+    console.log(`Daily Sleep: ${JSON.stringify(sleep, null, 2)}\n`);
 
     const readiness = await fetchOuraData(
       config.accessToken,
@@ -229,7 +265,7 @@ async function testCommand(ctx: CliContext): Promise<void> {
       today,
       tomorrow,
     );
-    log(`Daily Readiness: ${JSON.stringify(readiness, null, 2)}\n`);
+    console.log(`Daily Readiness: ${JSON.stringify(readiness, null, 2)}\n`);
 
     const activity = await fetchOuraData(
       config.accessToken,
@@ -237,13 +273,13 @@ async function testCommand(ctx: CliContext): Promise<void> {
       today,
       tomorrow,
     );
-    log(`Daily Activity: ${JSON.stringify(activity, null, 2)}\n`);
+    console.log(`Daily Activity: ${JSON.stringify(activity, null, 2)}\n`);
 
-    log("Connection test successful!");
+    console.log("Connection test successful!");
   } catch (err: any) {
-    log(`Error fetching data: ${err.message}`);
-    log('You may need to re-run "openclaw ouraclaw setup" to refresh your token.');
+    console.log(`Error fetching data: ${err.message}`);
+    console.log('You may need to re-run "openclaw ouraclaw setup" to refresh your token.');
   }
 
-  log("");
+  console.log("");
 }

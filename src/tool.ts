@@ -1,17 +1,8 @@
 import { fetchOuraData } from "./oura-client";
 import { ensureValidToken } from "./token-store";
-import { OuraConfig, OuraEndpoint, OURA_ENDPOINTS } from "./types";
+import { OuraEndpoint, OURA_ENDPOINTS } from "./types";
 
-export interface OuraToolInput {
-  endpoint: OuraEndpoint;
-  start_date?: string;
-  end_date?: string;
-}
-
-export function defineOuraDataTool(
-  getConfig: () => OuraConfig,
-  updateConfig: (updates: Partial<OuraConfig>) => void,
-) {
+export function defineOuraDataTool() {
   return {
     name: "oura_data",
     description:
@@ -38,26 +29,30 @@ export function defineOuraDataTool(
       },
       required: ["endpoint"],
     },
-    handler: async (input: OuraToolInput) => {
-      const config = getConfig();
-      const accessToken = await ensureValidToken(config, updateConfig);
+    execute: async (
+      _id: string,
+      params: { endpoint: OuraEndpoint; start_date?: string; end_date?: string },
+    ) => {
+      const accessToken = await ensureValidToken();
 
       const today = new Date().toISOString().split("T")[0];
       const tomorrow = new Date(Date.now() + 86_400_000)
         .toISOString()
         .split("T")[0];
 
-      const startDate = input.start_date || today;
-      const endDate = input.end_date || tomorrow;
+      const startDate = params.start_date || today;
+      const endDate = params.end_date || tomorrow;
 
       const result = await fetchOuraData(
         accessToken,
-        input.endpoint,
+        params.endpoint,
         startDate,
         endDate,
       );
 
-      return JSON.stringify(result, null, 2);
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }],
+      };
     },
   };
 }

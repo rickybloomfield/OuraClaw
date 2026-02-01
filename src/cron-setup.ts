@@ -1,107 +1,79 @@
+import { execSync } from "child_process";
 import { OuraConfig } from "./types";
-
-interface CronJobSpec {
-  id: string;
-  cron: string;
-  timezone: string;
-  type: "agentTurn";
-  isolatedSession: boolean;
-  message: string;
-  deliver: boolean;
-  channel?: string;
-  channelTarget?: string;
-}
+import { updateConfig } from "./token-store";
 
 function timeToCron(time: string): string {
   const [hours, minutes] = time.split(":").map(Number);
   return `${minutes} ${hours} * * *`;
 }
 
-export function buildMorningJob(config: OuraConfig): CronJobSpec {
-  const time = config.morningTime || "07:00";
-  const timezone = config.timezone || "UTC";
-
-  const job: CronJobSpec = {
-    id: "ouraclaw-morning",
-    cron: timeToCron(time),
-    timezone,
-    type: "agentTurn",
-    isolatedSession: true,
-    deliver: true,
-    message: [
-      "Fetch my Oura Ring data for this morning's summary.",
-      "Use the oura_data tool to get daily_sleep, daily_readiness, and daily_stress for today.",
-      "Also fetch the detailed sleep periods using the sleep endpoint.",
-      "Format the results as a morning health summary using the oura skill's morning template.",
-    ].join(" "),
-  };
-
-  if (config.preferredChannel && config.preferredChannel !== "default") {
-    job.channel = config.preferredChannel;
-    if (config.preferredChannelTarget) {
-      job.channelTarget = config.preferredChannelTarget;
-    }
-  }
-
-  return job;
+function runOpenclaw(args: string): string {
+  return execSync(`openclaw ${args}`, { encoding: "utf-8" }).trim();
 }
 
-export function buildEveningJob(config: OuraConfig): CronJobSpec {
-  const time = config.eveningTime || "21:00";
+export function createCronJobs(config: OuraConfig): void {
   const timezone = config.timezone || "UTC";
+  const morningTime = config.morningTime || "07:00";
+  const eveningTime = config.eveningTime || "21:00";
 
-  const job: CronJobSpec = {
-    id: "ouraclaw-evening",
-    cron: timeToCron(time),
-    timezone,
-    type: "agentTurn",
-    isolatedSession: true,
-    deliver: true,
-    message: [
-      "Fetch my Oura Ring data for this evening's summary.",
-      "Use the oura_data tool to get daily_activity, daily_readiness, and daily_stress for today.",
-      "Also fetch daily_sleep for a sleep recap.",
-      "Format the results as an evening health summary using the oura skill's evening template.",
-    ].join(" "),
-  };
+  // Remove existing jobs first
+  removeCronJobs(config);
 
+  // Build delivery args
+  let deliverArgs = "";
   if (config.preferredChannel && config.preferredChannel !== "default") {
-    job.channel = config.preferredChannel;
+    deliverArgs = ` --deliver --channel ${config.preferredChannel}`;
     if (config.preferredChannelTarget) {
-      job.channelTarget = config.preferredChannelTarget;
+      deliverArgs += ` --to ${config.preferredChannelTarget}`;
     }
+  } else {
+    deliverArgs = " --deliver";
   }
 
-  return job;
-}
+  // Morning job
+  const morningMsg = [
+    "Fetch my Oura Ring data for this morning's summary.",
+    "Use the oura_data tool to get daily_sleep, daily_readiness, and daily_stress for today.",
+    "Also fetch the detailed sleep periods using the sleep endpoint.",
+    "Format the results as a morning health summary using the oura skill's morning template.",
+  ].join(" ");
 
-export function createCronJobs(
-  config: OuraConfig,
-  updateConfig: (updates: Partial<OuraConfig>) => void,
-  registerCronJob: (job: CronJobSpec) => void,
-): void {
-  const morningJob = buildMorningJob(config);
-  const eveningJob = buildEveningJob(config);
+  runOpenclaw(
+    `cron add --name "ouraclaw-morning" --cron "${timeToCron(morningTime)}" --tz "${timezone}" --session isolated --message "${morningMsg}"${deliverArgs}`,
+  );
 
-  registerCronJob(morningJob);
-  registerCronJob(eveningJob);
+  // Evening job
+  const eveningMsg = [
+    "Fetch my Oura Ring data for this evening's summary.",
+    "Use the oura_data tool to get daily_activity, daily_readiness, and daily_stress for today.",
+    "Also fetch daily_sleep for a sleep recap.",
+    "Format the results as an evening health summary using the oura skill's evening template.",
+  ].join(" ");
+
+  runOpenclaw(
+    `cron add --name "ouraclaw-evening" --cron "${timeToCron(eveningTime)}" --tz "${timezone}" --session isolated --message "${eveningMsg}"${deliverArgs}`,
+  );
 
   updateConfig({
-    morningCronJobId: morningJob.id,
-    eveningCronJobId: eveningJob.id,
+    morningCronJobId: "ouraclaw-morning",
+    eveningCronJobId: "ouraclaw-evening",
   });
 }
 
-export function removeCronJobs(
-  config: OuraConfig,
-  updateConfig: (updates: Partial<OuraConfig>) => void,
-  unregisterCronJob: (id: string) => void,
-): void {
+export function removeCronJobs(config: OuraConfig): void {
   if (config.morningCronJobId) {
-    unregisterCronJob(config.morningCronJobId);
+    try {
+      runOpenclaw(`cron remove --name "${config.morningCronJobId}"`);
+    } catch {
+      // Job may not exist yet
+    }
   }
   if (config.eveningCronJobId) {
-    unregisterCronJob(config.eveningCronJobId);
+    try {
+      runOpenclaw(`cron remove --name "${config.eveningCronJobId}"`);
+    } catch {
+      // Job may not exist yet
+    }
   }
   updateConfig({
     morningCronJobId: undefined,

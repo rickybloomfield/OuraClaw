@@ -1,11 +1,33 @@
+import fs from "fs";
+import path from "path";
+import os from "os";
 import { OuraConfig, OuraTokenResponse } from "./types";
 import { refreshAccessToken } from "./oauth";
 
-export function saveTokens(
-  config: OuraConfig,
-  tokenResponse: OuraTokenResponse,
-  updateConfig: (updates: Partial<OuraConfig>) => void,
-): void {
+const CONFIG_DIR = path.join(os.homedir(), ".openclaw", "plugins", "ouraclaw");
+const CONFIG_FILE = path.join(CONFIG_DIR, "config.json");
+
+export function readConfig(): OuraConfig {
+  try {
+    const data = fs.readFileSync(CONFIG_FILE, "utf-8");
+    return JSON.parse(data);
+  } catch {
+    return {};
+  }
+}
+
+export function writeConfig(config: OuraConfig): void {
+  fs.mkdirSync(CONFIG_DIR, { recursive: true });
+  fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2), "utf-8");
+}
+
+export function updateConfig(updates: Partial<OuraConfig>): void {
+  const config = readConfig();
+  Object.assign(config, updates);
+  writeConfig(config);
+}
+
+export function saveTokens(tokenResponse: OuraTokenResponse): void {
   const expiresAt = Date.now() + tokenResponse.expires_in * 1000;
   updateConfig({
     accessToken: tokenResponse.access_token,
@@ -20,10 +42,9 @@ export function isTokenExpired(config: OuraConfig): boolean {
   return Date.now() > config.tokenExpiresAt - 5 * 60 * 1000;
 }
 
-export async function ensureValidToken(
-  config: OuraConfig,
-  updateConfig: (updates: Partial<OuraConfig>) => void,
-): Promise<string> {
+export async function ensureValidToken(): Promise<string> {
+  const config = readConfig();
+
   if (!config.accessToken) {
     throw new Error(
       "No access token configured. Run `openclaw ouraclaw setup` to authenticate.",
@@ -47,7 +68,7 @@ export async function ensureValidToken(
   );
 
   // Oura refresh tokens are single-use, so save the new one immediately
-  saveTokens(config, tokenResponse, updateConfig);
+  saveTokens(tokenResponse);
 
   return tokenResponse.access_token;
 }
