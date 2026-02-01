@@ -182,11 +182,8 @@ async function setupCommand(): Promise<void> {
     if (enableScheduled) {
       const morningTime = await ask(rl, "Morning summary time (HH:MM):", "07:00");
       const eveningTime = await ask(rl, "Evening summary time (HH:MM):", "21:00");
-      const timezone = await ask(
-        rl,
-        "Timezone (e.g. America/New_York):",
-        Intl.DateTimeFormat().resolvedOptions().timeZone,
-      );
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      console.log(`  Timezone: ${timezone} (detected from system)`);
 
       updateConfig({
         scheduledMessages: true,
