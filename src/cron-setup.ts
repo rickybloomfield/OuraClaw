@@ -63,7 +63,8 @@ export function createCronJobs(config: OuraConfig): void {
     "Also fetch yesterday's daily_activity as a fallback in case today's isn't ready yet.",
     "Format the results as a morning health summary using the oura skill's morning template.",
     "Remember: 8-10 lines max, include date, use emoji sparingly, warm but not cheesy.",
-    "End with a link to the Oura app: https://cloud.ouraring.com/app/v1/home",
+    "Do not send any preamble or intro message before the summary — just send the summary directly as a single message.",
+    "End the summary with a line like: \"Dive deeper in the Oura app: https://cloud.ouraring.com/app/v1/home — enjoy your day!\"",
   ].join(" ");
 
   const morningArgs = [
@@ -91,7 +92,8 @@ export function createCronJobs(config: OuraConfig): void {
     "Use the oura_data tool to get daily_activity, daily_readiness, daily_stress, and daily_sleep for today.",
     "Format the results as an evening health summary using the oura skill's evening template.",
     "Remember: 6-8 lines max, include date, focus on activity, mention last night's sleep as a recap, end with a warm wind-down nudge.",
-    "End with a link to the Oura app: https://cloud.ouraring.com/app/v1/home",
+    "Do not send any preamble or intro message before the summary — just send the summary directly as a single message.",
+    "End the summary with a line like: \"Dive deeper in the Oura app: https://cloud.ouraring.com/app/v1/home — sleep well!\"",
   ].join(" ");
 
   const eveningArgs = [
