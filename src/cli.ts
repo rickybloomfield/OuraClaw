@@ -57,12 +57,15 @@ function select(rl: readline.Interface, question: string, choices: string[], def
 }
 
 function openUrl(url: string): void {
+  const browser = process.env.BROWSER;
   const cmd =
-    process.platform === "darwin"
-      ? `open "${url}"`
-      : process.platform === "win32"
-        ? `start "${url}"`
-        : `xdg-open "${url}"`;
+    browser
+      ? `"${browser}" "${url}"`
+      : process.platform === "darwin"
+        ? `open "${url}"`
+        : process.platform === "win32"
+          ? `start "${url}"`
+          : `xdg-open "${url}"`;
   exec(cmd);
 }
 
