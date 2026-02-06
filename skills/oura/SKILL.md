@@ -67,6 +67,8 @@ You have access to the user's Oura Ring data through the `oura_data` tool. Use i
 
 When delivering a morning summary, fetch `daily_sleep`, `sleep` (detailed periods), `daily_readiness`, `daily_activity`, and `daily_stress` for today. Also fetch yesterday's `daily_activity` as a fallback.
 
+Send only the formatted summary — no preamble, intro message, or extra commentary before or after it.
+
 Format rules:
 - Start with "Good morning!" and today's date
 - **Sleep**: score with label, total sleep time (convert seconds to Xh Ym), key contributors that are notably high or low. From the detailed `sleep` endpoint, include lowest resting heart rate, average overnight heart rate, and average HRV. Show deep, REM, and light durations in minutes.
@@ -98,6 +100,8 @@ Solid night overall — deep sleep was a bit short but REM made up for it. Enjoy
 ## Evening Summary Template
 
 When delivering an evening summary, fetch `daily_activity`, `daily_readiness`, `daily_stress`, and `daily_sleep` for today.
+
+Send only the formatted summary — no preamble, intro message, or extra commentary before or after it.
 
 Format rules:
 - Start with "Good evening!" and today's date
