@@ -35,10 +35,11 @@ export function defineOuraDataTool() {
     ) => {
       const accessToken = await ensureValidToken();
 
-      const today = new Date().toISOString().split("T")[0];
-      const tomorrow = new Date(Date.now() + 86_400_000)
-        .toISOString()
-        .split("T")[0];
+      const now = new Date();
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+      const tom = new Date(now);
+      tom.setDate(tom.getDate() + 1);
+      const tomorrow = `${tom.getFullYear()}-${String(tom.getMonth() + 1).padStart(2, "0")}-${String(tom.getDate()).padStart(2, "0")}`;
 
       const startDate = params.start_date || today;
       const endDate = params.end_date || tomorrow;
