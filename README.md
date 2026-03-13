@@ -31,7 +31,13 @@ npm run build
 
 ## Quick Start
 
-Run the interactive setup wizard:
+Before running setup, create an Oura application:
+
+1. Go to [developer.ouraring.com](https://developer.ouraring.com).
+2. Open `My Applications` and create a new app.
+3. Set the redirect URI to `http://localhost:9876/callback`.
+
+Then run the interactive setup wizard:
 
 ```bash
 ouraclaw-cli setup
@@ -44,8 +50,15 @@ The wizard:
 3. Stores tokens plus threshold and baseline defaults in `$HOME/.ouraclaw-cli/ouraclaw-cli.json`.
 4. If OpenClaw is installed, can also walk you through cron-based scheduling.
 
-When creating or updating your Oura application, register the redirect URI exactly as
-`http://localhost:9876/callback`. Oura validates the redirect URI string literally.
+Oura validates the redirect URI string literally, so it must be exactly `http://localhost:9876/callback`.
+
+## Key Guides
+
+- [Setup guide](docs/guides/setup.md)
+- [Scheduling guide](docs/guides/scheduling.md)
+- [Optimized morning routine](docs/guides/optimized-morning-routine.md)
+- [Migration Guide](docs/guides/migrating-from-openclaw-plugin.md)
+- [Troubleshooting](docs/guides/troubleshooting.md)
 
 ## Common Commands
 
@@ -104,6 +117,7 @@ OpenClaw and keeps command invocations short and allowlist-friendly.
 
 ## Documentation
 
+- [Setup guide](docs/guides/setup.md)
 - [Architecture](docs/architecture.md)
 - [Command reference](docs/guides/command-reference.md)
 - [Configuration](docs/guides/configuration.md)

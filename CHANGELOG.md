@@ -18,6 +18,7 @@ All notable changes to this project will be documented in this file.
   scheduling guide.
 - Added an optimized watcher delivery mode that can either alert only on unusual days or send every day once today's
   Oura data is actually ready.
+- Added a dedicated setup guide and restored the explicit Oura application creation steps near the top of the README.
 
 ### Changed
 
