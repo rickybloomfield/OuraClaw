@@ -3,7 +3,7 @@
 ## OAuth Times Out
 
 - Confirm your Oura application redirect URI is exactly `http://localhost:9876/callback`.
-- Re-run `oura-cli-p setup`.
+- Re-run `ouraclaw-cli setup`.
 - Ensure nothing else is already listening on port `9876`.
 
 ## OAuth Shows `400 invalid_request`
@@ -13,7 +13,7 @@ Oura usually returns this when the registered redirect URI does not match the au
 
 ## OAuth State Validation Fails
 
-The browser callback did not match the initiating request. Close the browser tab and run `oura-cli-p setup` again.
+The browser callback did not match the initiating request. Close the browser tab and run `ouraclaw-cli setup` again.
 
 ## `summary morning-optimized` Says Data Is Not Ready
 
@@ -23,10 +23,10 @@ The command requires today's `daily_sleep.score`, `daily_readiness.score`, and
 ## Baseline Refresh Failed
 
 The command still falls back to fixed thresholds and returns `baselineStatus: "refresh_failed"`. Check Oura API access
-with `oura-cli-p fetch sleep --start-date <yesterday> --end-date <today>` and rerun later.
+with `ouraclaw-cli fetch sleep --start-date <yesterday> --end-date <today>` and rerun later.
 
 ## OpenClaw Cannot Run the Skill
 
-- Install `oura-cli-p` on the same machine as OpenClaw.
+- Install `ouraclaw-cli` on the same machine as OpenClaw.
 - Ensure the binary is on `PATH`.
 - Keep the skill command allowlist broad enough for the documented invocations in `skills/oura/SKILL.md`.

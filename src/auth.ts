@@ -48,7 +48,7 @@ export async function ensureValidAccessToken(): Promise<string> {
   }
 
   if (!state.auth.refreshToken || !state.auth.clientId || !state.auth.clientSecret) {
-    throw new Error('No valid access token is configured. Run `oura-cli-p setup` first.');
+    throw new Error('No valid access token is configured. Run `ouraclaw-cli setup` first.');
   }
 
   const patch = await refreshStoredAuth();

@@ -1,42 +1,42 @@
 ---
 name: oura
-description: Oura Ring sleep, readiness, activity, stress, and automated recap access through `oura-cli-p`.
-homepage: https://github.com/robert7/oura-cli-p
+description: Oura Ring sleep, readiness, activity, stress, and automated recap access through `ouraclaw-cli`.
+homepage: https://github.com/robert7/ouraclaw-cli
 metadata:
   {
     "openclaw":
       {
         "emoji": "🫧",
-        "requires": { "bins": ["oura-cli-p"] },
+        "requires": { "bins": ["ouraclaw-cli"] },
         "install":
           [
             {
               "id": "node",
               "kind": "node",
-              "package": "oura-cli-p",
-              "bins": ["oura-cli-p"],
-              "label": "Install oura-cli-p (npm)",
+              "package": "@robertvii/ouraclaw-cli",
+              "bins": ["ouraclaw-cli"],
+              "label": "Install ouraclaw-cli (npm)",
             },
           ],
       },
   }
 ---
 
-# Oura via oura-cli-p
+# Oura via ouraclaw-cli
 
 Use this skill when the user wants Oura Ring data, a morning recap, an evening recap, or an optimized morning alerting
 decision.
 
 ## Preconditions
 
-1. `oura-cli-p` is installed on the same machine as OpenClaw.
-2. `oura-cli-p setup` has already completed successfully.
-3. If setup has not completed, stop and ask the user to run `oura-cli-p setup`.
+1. `ouraclaw-cli` is installed on the same machine as OpenClaw.
+2. `ouraclaw-cli setup` has already completed successfully.
+3. If setup has not completed, stop and ask the user to run `ouraclaw-cli setup`.
 
 ## Command Invocation Rule
 
-- Run exactly one `oura-cli-p` command per execution.
-- Invoke `oura-cli-p` directly.
+- Run exactly one `ouraclaw-cli` command per execution.
+- Invoke `ouraclaw-cli` directly.
 - Do not chain commands with `&&`, `|`, `;`, subshells, or command substitution.
 - Prefer the exact command forms documented below so OpenClaw allowlisting stays simple.
 
@@ -49,14 +49,14 @@ decision.
 
 ## Common Commands
 
-- Health check: `oura-cli-p auth status`
+- Health check: `ouraclaw-cli auth status`
 - Raw endpoint fetch:
-  - `oura-cli-p fetch daily_sleep`
-  - `oura-cli-p fetch sleep --start-date 2026-03-12 --end-date 2026-03-13`
-- Manual baseline rebuild: `oura-cli-p baseline rebuild`
-- Morning recap data: `oura-cli-p summary morning`
-- Evening recap data: `oura-cli-p summary evening`
-- Morning optimized decision: `oura-cli-p summary morning-optimized`
+  - `ouraclaw-cli fetch daily_sleep`
+  - `ouraclaw-cli fetch sleep --start-date 2026-03-12 --end-date 2026-03-13`
+- Manual baseline rebuild: `ouraclaw-cli baseline rebuild`
+- Morning recap data: `ouraclaw-cli summary morning`
+- Evening recap data: `ouraclaw-cli summary evening`
+- Morning optimized decision: `ouraclaw-cli summary morning-optimized`
 
 ## Date Rules
 
@@ -141,7 +141,7 @@ When producing a scheduled summary or alert, follow these rules:
 
 - Read the template carefully and follow every format rule, including all specified data points, line counts, and
   examples.
-- Run the appropriate `oura-cli-p` command in JSON mode and use that JSON as the source of truth for the final message.
+- Run the appropriate `ouraclaw-cli` command in JSON mode and use that JSON as the source of truth for the final message.
 - Send the complete formatted summary as a single message to the channel and target specified in the request. Do not
   summarize, abbreviate, or rephrase the final message after composing it.
 - Follow the request's delivery language for any channel message. If the request specifies Slovak, English, or any
@@ -155,7 +155,7 @@ When producing a scheduled summary or alert, follow these rules:
 
 When delivering a standard morning summary, run:
 
-`oura-cli-p summary morning`
+`ouraclaw-cli summary morning`
 
 Use the returned JSON fields `day`, `dailySleep`, `dailyReadiness`, `dailyActivity`, `dailyStress`, `sleepRecord`, and
 `missing` as the source data. Do not fall back to yesterday's data. If required fields are missing or pending, reflect
@@ -195,7 +195,7 @@ Stress: normal range
 
 When delivering a standard evening summary, run:
 
-`oura-cli-p summary evening`
+`ouraclaw-cli summary evening`
 
 Use the returned JSON fields `day`, `dailyActivity`, `dailyReadiness`, `dailyStress`, `dailySleep`, and `missing` as
 the source data. Do not fall back to yesterday's data.
@@ -230,7 +230,7 @@ Nice active day. Wind down soon and set tomorrow up properly.
 
 When deciding whether a morning alert should be sent, run:
 
-`oura-cli-p summary morning-optimized`
+`ouraclaw-cli summary morning-optimized`
 
 Interpret the JSON result as the source of truth:
 
@@ -272,10 +272,10 @@ Worth taking today a bit gentler if you can.
 
 ## Ad-hoc Query Mapping
 
-- "How did I sleep?" -> `oura-cli-p fetch daily_sleep`
-- "Show detailed sleep" -> `oura-cli-p fetch sleep --start-date <yesterday> --end-date <today>`
-- "What's my readiness?" -> `oura-cli-p fetch daily_readiness`
-- "How active was I today?" -> `oura-cli-p fetch daily_activity`
-- "How stressed was I?" -> `oura-cli-p fetch daily_stress`
+- "How did I sleep?" -> `ouraclaw-cli fetch daily_sleep`
+- "Show detailed sleep" -> `ouraclaw-cli fetch sleep --start-date <yesterday> --end-date <today>`
+- "What's my readiness?" -> `ouraclaw-cli fetch daily_readiness`
+- "How active was I today?" -> `ouraclaw-cli fetch daily_activity`
+- "How stressed was I?" -> `ouraclaw-cli fetch daily_stress`
 
 Do not recreate Oura business logic in prompt text when the CLI already exposes it.

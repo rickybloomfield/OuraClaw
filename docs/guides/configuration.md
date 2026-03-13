@@ -1,6 +1,6 @@
 # Configuration
 
-`oura-cli-p` stores state in `$HOME/.oura-cli-p/oura-cli-p.json`.
+`ouraclaw-cli` stores state in `$HOME/.ouraclaw-cli/ouraclaw-cli.json`.
 
 ## Fixed Thresholds
 

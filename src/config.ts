@@ -1,7 +1,7 @@
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
-export const APP_NAME = 'oura-cli-p';
+export const APP_NAME = 'ouraclaw-cli';
 export const SCHEMA_VERSION = 1;
 
 export const CALLBACK_HOST = '127.0.0.1';
@@ -44,16 +44,16 @@ export const OURA_ENDPOINTS = [
 ] as const;
 
 export function getStateDir(): string {
-  return process.env.OURA_CLI_P_HOME ?? join(homedir(), '.oura-cli-p');
+  return process.env.OURACLAW_CLI_HOME ?? join(homedir(), '.ouraclaw-cli');
 }
 
 export function getStateFilePath(): string {
-  return join(getStateDir(), 'oura-cli-p.json');
+  return join(getStateDir(), 'ouraclaw-cli.json');
 }
 
 export function getLegacyConfigFilePath(): string {
   return (
-    process.env.OURA_CLI_P_LEGACY_CONFIG_FILE ??
+    process.env.OURACLAW_CLI_LEGACY_CONFIG_FILE ??
     join(homedir(), '.openclaw', 'plugins', 'ouraclaw', 'config.json')
   );
 }

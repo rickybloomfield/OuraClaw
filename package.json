@@ -1,10 +1,10 @@
 {
-  "name": "oura-cli-p",
+  "name": "@robertvii/ouraclaw-cli",
   "version": "0.2.0",
   "description": "Standalone CLI for Oura automation with an optional OpenClaw skill",
   "main": "dist/index.js",
   "bin": {
-    "oura-cli-p": "dist/index.js"
+    "ouraclaw-cli": "dist/index.js"
   },
   "scripts": {
     "build": "tsc",
@@ -42,12 +42,15 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/robert7/oura-cli-p.git"
+    "url": "git+https://github.com/robert7/ouraclaw-cli.git"
   },
   "bugs": {
-    "url": "https://github.com/robert7/oura-cli-p/issues"
+    "url": "https://github.com/robert7/ouraclaw-cli/issues"
   },
-  "homepage": "https://github.com/robert7/oura-cli-p#readme",
+  "homepage": "https://github.com/robert7/ouraclaw-cli#readme",
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "commander": "^13.1.0"
   },

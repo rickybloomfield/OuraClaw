@@ -1,12 +1,12 @@
 # AGENTS.md
 
-This file is a repo map for AI agents working in `oura-cli-p`.
+This file is a repo map for AI agents working in `ouraclaw-cli`.
 
 ## Repo Role
 
 This repository is the source of truth for Oura automation logic. It ships:
 
-- a standalone CLI (`oura-cli-p`)
+- a standalone CLI (`ouraclaw-cli`)
 - an OpenClaw skill under `skills/oura/`
 
 JSON output is the default mode for automation consumers. OpenClaw integration is skill-only; there is no plugin

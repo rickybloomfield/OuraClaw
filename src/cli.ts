@@ -333,7 +333,10 @@ export async function runMorningOptimized(): Promise<void> {
 
 export function createProgram(): Command {
   const program = new Command();
-  program.name('oura-cli-p').description('Standalone CLI for Oura automation').showHelpAfterError();
+  program
+    .name('ouraclaw-cli')
+    .description('Standalone CLI for Oura automation')
+    .showHelpAfterError();
 
   program
     .command('setup')

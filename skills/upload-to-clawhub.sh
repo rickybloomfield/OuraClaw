@@ -61,7 +61,7 @@ VERSION="$(cd "${REPO_ROOT}" && node -p "require('./package.json').version")"
 SLUG="oura"
 NAME="Oura Ring Automation"
 TAGS="latest"
-CHANGELOG_TEXT="Sync from oura-cli-p v${VERSION}"
+CHANGELOG_TEXT="Sync from ouraclaw-cli v${VERSION}"
 
 CMD=(
   clawhub publish "${SKILL_PATH}"

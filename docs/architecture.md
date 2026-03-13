@@ -1,12 +1,12 @@
 # Architecture
 
-`oura-cli-p` keeps Oura automation logic in one TypeScript CLI instead of splitting behavior between an OpenClaw plugin,
+`ouraclaw-cli` keeps Oura automation logic in one TypeScript CLI instead of splitting behavior between an OpenClaw plugin,
 prompt templates, and shell glue.
 
 The core runtime has four responsibilities:
 
 1. Authentication and token refresh against the Oura OAuth endpoints.
-2. Private local state storage at `$HOME/.oura-cli-p/oura-cli-p.json`.
+2. Private local state storage at `$HOME/.ouraclaw-cli/ouraclaw-cli.json`.
 3. Oura API fetches plus summary and baseline evaluation.
 4. A thin OpenClaw integration layer through the shipped skill in `skills/oura/`.
 
@@ -47,5 +47,5 @@ ordinary range, then treats at least two same-day out-of-range baseline metrics 
 
 ## Skill Integration
 
-The OpenClaw skill does not reimplement business logic. It invokes `oura-cli-p` directly, defaults to one command per
+The OpenClaw skill does not reimplement business logic. It invokes `ouraclaw-cli` directly, defaults to one command per
 execution, prefers JSON for automation, and uses `--text` only when it needs a sendable recap string.
