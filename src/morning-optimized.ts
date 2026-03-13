@@ -66,6 +66,7 @@ export function evaluateMorningOptimized(input: MorningOptimizedInput): MorningO
       shouldSend: false,
       deliveryMode,
       baselineStatus: input.baselineStatus,
+      breachedMetrics: [],
       today: input.today,
       baseline: input.baseline,
       reasons: missingReasons,

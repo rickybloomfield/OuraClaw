@@ -242,7 +242,7 @@ export interface MorningOptimizedResult {
   message?: string;
   deliveryKey?: string;
   alreadyDeliveredToday?: boolean;
-  breachedMetrics?: BaselineMetricKey[];
+  breachedMetrics: BaselineMetricKey[];
   today: MorningOptimizedToday;
   baseline?: BaselineSnapshot;
   morningSummary?: SummaryResult;

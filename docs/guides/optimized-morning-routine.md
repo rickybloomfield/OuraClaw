@@ -86,6 +86,11 @@ recap, but only after real same-day data is available.
 That makes it a better fit than a fixed-time morning cron job when the user wants a daily recap without the risk of
 firing before Oura has synced yet.
 
+`breachedMetrics` still remains part of the JSON contract in this mode:
+
+- ordinary ready day => `breachedMetrics: []`
+- unusual ready day => `breachedMetrics` contains the breached metrics exactly as in alert-only mode
+
 ## Delivery Handshake
 
 If `summary morning-optimized` returns `shouldSend: true`, it also returns a `deliveryKey`.

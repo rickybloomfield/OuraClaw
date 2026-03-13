@@ -173,5 +173,33 @@ describe('morning-optimized', () => {
     expect(result.shouldSend).toBe(true);
     expect(result.deliveryType).toBe('morning-summary');
     expect(result.deliveryKey).toBeDefined();
+    expect(result.breachedMetrics).toEqual([]);
+  });
+
+  test('daily-when-ready mode still reports breached metrics on unusual days', () => {
+    const result = evaluateMorningOptimized({
+      today: {
+        day: '2026-03-13',
+        sleepScore: 70,
+        readinessScore: 72,
+        temperatureDeviation: 0.3,
+        averageHrv: 42,
+        lowestHeartRate: 48,
+        totalSleepDuration: 28000,
+      },
+      thresholds: defaultThresholds(),
+      baselineConfig: defaultBaselineConfig(),
+      baselineStatus: 'ready',
+      deliveryMode: 'daily-when-ready',
+    });
+
+    expect(result.shouldSend).toBe(true);
+    expect(result.deliveryType).toBe('optimized-alert');
+    expect(result.breachedMetrics).toEqual(
+      expect.arrayContaining(['sleepScore', 'readinessScore', 'temperatureDeviation'])
+    );
+    expect(result.reasons).toEqual(
+      expect.arrayContaining(['sleep_below_threshold', 'readiness_below_threshold'])
+    );
   });
 });

@@ -7,7 +7,7 @@
 Based on [Ricky Bloomfield's OuraClaw](https://github.com/rickybloomfield/OuraClaw), this fork refactors the original
 OpenClaw plugin into a standalone, JSON-first CLI while keeping the `oura` skill compatible through a CLI-backed
 adaptation. It also adds an **[optimized morning flow](docs/guides/optimized-morning-routine.md)** that avoids stale
-yesterday fallback data and only sends when something is genuinely out of the ordinary.
+yesterday fallback data and only sends when something is genuinely out of the ordinary (configurable).
 
 `ouraclaw-cli` is a standalone CLI for Oura automation. It fetches Oura data, manages OAuth tokens and local thresholds,
 builds summary output, and ships an optional OpenClaw skill that invokes the CLI directly.

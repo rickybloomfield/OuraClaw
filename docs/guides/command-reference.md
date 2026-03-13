@@ -102,7 +102,8 @@ Returns JSON for the optimized alerting flow. The result includes `dataReady`, `
 ordered `reasons`.
 
 In `daily-when-ready` mode, an ordinary but ready day can still return `shouldSend: true` with
-`deliveryType: "morning-summary"` plus a nested `morningSummary` payload.
+`deliveryType: "morning-summary"` plus a nested `morningSummary` payload. `breachedMetrics` still remains part of the
+contract: it is `[]` on ordinary ready days and populated on unusual ready days.
 
 ### `ouraclaw-cli summary morning-optimized-confirm --delivery-key <deliveryKey> [--delivery-mode unusual-only|daily-when-ready]`
 
