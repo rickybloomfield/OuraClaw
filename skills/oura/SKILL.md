@@ -173,7 +173,6 @@ Format rules:
 - **Stress**: mention the current summary when available. If stress data is missing, say so briefly or skip it.
 - Keep it concise, roughly 8-10 lines max.
 - Bold category labels and scores on channels that support bold. On plain text channels, do not use formatting markers.
-- Do not include a "Dive deeper in the Oura app" closing line.
 
 Example tone (plain text, structure only):
 
@@ -212,7 +211,6 @@ Format rules:
 - End with a short, genuine wind-down nudge in the delivery language.
 - Keep it concise, roughly 6-8 lines max.
 - Bold category labels and scores on channels that support bold. On plain text channels, do not use formatting markers.
-- Do not include a "Dive deeper in the Oura app" closing line.
 
 Example tone (plain text, structure only):
 
