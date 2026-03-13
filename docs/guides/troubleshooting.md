@@ -3,6 +3,9 @@
 ## OAuth Times Out
 
 - Confirm your Oura application redirect URI is exactly `http://localhost:9876/callback`.
+- If you are running over SSH or another headless session, the CLI uses a conservative browser-open prompt default and
+  can print the authorize URL instead. Open that URL manually in a browser on the same machine that can reach the
+  local callback.
 - Re-run `ouraclaw-cli setup`.
 - Ensure nothing else is already listening on port `9876`.
 

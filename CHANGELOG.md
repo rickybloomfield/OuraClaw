@@ -28,6 +28,8 @@ All notable changes to this project will be documented in this file.
 - Updated `setup` so it can hand off into the same scheduling walkthrough when OpenClaw is available.
 - Updated the development toolchain to current supported Vitest and ESLint stacks, including migration to ESLint flat
   config and removal of deprecated install-time dependency warnings.
+- Updated setup so it no longer echoes the stored client secret, asks before opening the browser for OAuth with a
+  headless-aware default, and defaults to reusing existing auth unless re-authentication is explicitly requested.
 
 ## [0.2.0] - 2026-03-13
 

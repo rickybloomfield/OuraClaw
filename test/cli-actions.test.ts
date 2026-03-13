@@ -257,6 +257,65 @@ describe('cli actions', () => {
     });
   });
 
+  test('builds a non-revealing client secret prompt when a secret already exists', async () => {
+    const { getClientSecretPrompt } = await import('../src/cli');
+
+    expect(getClientSecretPrompt(true)).toBe('Oura Client Secret (press Enter to keep current): ');
+  });
+
+  test('detects likely headless sessions', async () => {
+    const { isLikelyHeadlessSession } = await import('../src/cli');
+
+    expect(isLikelyHeadlessSession({ SSH_CONNECTION: '1' }, 'linux')).toBe(true);
+    expect(isLikelyHeadlessSession({ DISPLAY: ':0' }, 'linux')).toBe(false);
+    expect(isLikelyHeadlessSession({}, 'darwin')).toBe(false);
+  });
+
+  test('offers reauthentication when an access token or refresh token exists', async () => {
+    const { shouldOfferReauthentication } = await import('../src/cli');
+
+    expect(
+      shouldOfferReauthentication({
+        configured: true,
+        hasAccessToken: true,
+        hasRefreshToken: false,
+        expired: false,
+        tokenExpiresAt: null,
+      })
+    ).toBe(true);
+    expect(
+      shouldOfferReauthentication({
+        configured: true,
+        hasAccessToken: false,
+        hasRefreshToken: true,
+        expired: true,
+        tokenExpiresAt: null,
+      })
+    ).toBe(true);
+    expect(
+      shouldOfferReauthentication({
+        configured: true,
+        hasAccessToken: false,
+        hasRefreshToken: false,
+        expired: true,
+        tokenExpiresAt: null,
+      })
+    ).toBe(false);
+  });
+
+  test('uses a conservative browser-open prompt in likely headless sessions', async () => {
+    const { getBrowserOpenPrompt } = await import('../src/cli');
+
+    expect(getBrowserOpenPrompt(true)).toEqual({
+      question: 'This looks like a headless or SSH session. Open the OAuth URL in a browser anyway',
+      defaultYes: false,
+    });
+    expect(getBrowserOpenPrompt(false)).toEqual({
+      question: 'Open the OAuth URL in your browser now',
+      defaultYes: true,
+    });
+  });
+
   test('prints schedule status with managed and legacy job information', async () => {
     const schedule = {
       enabled: true,

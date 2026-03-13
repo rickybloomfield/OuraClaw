@@ -32,9 +32,14 @@ The wizard will:
 
 1. Ask for your Oura `Client ID` and `Client Secret`.
 2. Ask for fixed-threshold and baseline defaults.
-3. Open the browser for OAuth authorization.
-4. Store local state in `$HOME/.ouraclaw-cli/ouraclaw-cli.json`.
-5. If `openclaw` is installed, optionally continue into cron scheduling setup.
+3. If auth already exists, ask whether you want to re-authenticate. Default is `No`.
+4. Ask whether the CLI should open the OAuth URL in a browser now.
+5. Use a headless/SSH-aware default for that browser prompt and print the URL if you prefer to open it manually.
+6. Store local state in `$HOME/.ouraclaw-cli/ouraclaw-cli.json`.
+7. If `openclaw` is installed, optionally continue into cron scheduling setup.
+
+The setup prompt never prints the stored client secret back to the terminal. If a secret is already stored, pressing
+Enter keeps it.
 
 ## 3. Optional OpenClaw Scheduling
 

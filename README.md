@@ -46,9 +46,10 @@ ouraclaw-cli setup
 The wizard:
 
 1. Collects your Oura client ID and client secret.
-2. Opens the hardened OAuth flow in a browser.
-3. Stores tokens plus threshold and baseline defaults in `$HOME/.ouraclaw-cli/ouraclaw-cli.json`.
-4. If OpenClaw is installed, can also walk you through cron-based scheduling.
+2. Reuses existing auth by default unless you explicitly choose to re-authenticate.
+3. Asks before opening the hardened OAuth flow in a browser, with a headless/SSH-aware default.
+4. Stores tokens plus threshold and baseline defaults in `$HOME/.ouraclaw-cli/ouraclaw-cli.json`.
+5. If OpenClaw is installed, can also walk you through cron-based scheduling.
 
 Oura validates the redirect URI string literally, so it must be exactly `http://localhost:9876/callback`.
 

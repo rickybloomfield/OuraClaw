@@ -61,6 +61,13 @@ import {
 
 const execFileAsync = promisify(execFile);
 
+interface MaskableReadline extends readline.Interface {
+  input: NodeJS.ReadStream;
+  output: NodeJS.WriteStream;
+  _writeToOutput?: (text: string) => void;
+  stdoutMuted?: boolean;
+}
+
 function openExternalUrl(url: string): Promise<void> {
   if (process.platform === 'darwin') {
     return execFileAsync('open', [url]).then(() => undefined);
@@ -69,6 +76,52 @@ function openExternalUrl(url: string): Promise<void> {
     return execFileAsync('cmd', ['/c', 'start', '', url]).then(() => undefined);
   }
   return execFileAsync('xdg-open', [url]).then(() => undefined);
+}
+
+export function isLikelyHeadlessSession(
+  env: NodeJS.ProcessEnv = process.env,
+  platform: NodeJS.Platform = process.platform
+): boolean {
+  if (env.CI) {
+    return true;
+  }
+
+  if (env.SSH_CONNECTION || env.SSH_TTY || env.SSH_CLIENT) {
+    return true;
+  }
+
+  if (platform === 'linux') {
+    return !env.DISPLAY && !env.WAYLAND_DISPLAY;
+  }
+
+  return false;
+}
+
+export function getClientSecretPrompt(hasExistingSecret: boolean): string {
+  return hasExistingSecret
+    ? 'Oura Client Secret (press Enter to keep current): '
+    : 'Oura Client Secret: ';
+}
+
+export function shouldOfferReauthentication(authStatus: ReturnType<typeof getAuthStatus>): boolean {
+  return authStatus.hasAccessToken || authStatus.hasRefreshToken;
+}
+
+export function getBrowserOpenPrompt(headlessHint: boolean): {
+  question: string;
+  defaultYes: boolean;
+} {
+  if (headlessHint) {
+    return {
+      question: 'This looks like a headless or SSH session. Open the OAuth URL in a browser anyway',
+      defaultYes: false,
+    };
+  }
+
+  return {
+    question: 'Open the OAuth URL in your browser now',
+    defaultYes: true,
+  };
 }
 
 function getSuggestedTimezone(): string {
@@ -91,6 +144,43 @@ async function ask(
   const suffix = defaultValue ? ` (${defaultValue})` : '';
   const answer = await rl.question(`${question}${suffix}: `);
   return answer.trim() || defaultValue || '';
+}
+
+async function askForClientSecret(
+  rl: readline.Interface,
+  hasExistingSecret: boolean
+): Promise<string> {
+  const prompt = getClientSecretPrompt(hasExistingSecret);
+  const maskableRl = rl as MaskableReadline;
+  const originalWrite = maskableRl._writeToOutput;
+  const inputTarget = maskableRl.input;
+  const canMask =
+    Boolean(inputTarget?.isTTY) &&
+    process.env.TERM !== 'dumb' &&
+    process.env.CI !== 'true' &&
+    process.platform !== 'win32';
+
+  if (canMask) {
+    maskableRl._writeToOutput = function writeMaskedOutput(textToWrite: string) {
+      if (maskableRl.stdoutMuted) {
+        maskableRl.output.write('*');
+        return;
+      }
+      return originalWrite?.call(maskableRl, textToWrite);
+    };
+    maskableRl.stdoutMuted = true;
+  }
+
+  try {
+    const secret = await rl.question(prompt);
+    return secret.trim();
+  } finally {
+    if (canMask) {
+      maskableRl.stdoutMuted = false;
+      maskableRl._writeToOutput = originalWrite;
+      maskableRl.output.write('\n');
+    }
+  }
 }
 
 async function confirm(
@@ -638,7 +728,8 @@ export async function runSetup(): Promise<void> {
 
   try {
     const clientId = await ask(rl, 'Oura Client ID', existing.auth.clientId);
-    const clientSecret = await ask(rl, 'Oura Client Secret', existing.auth.clientSecret);
+    const enteredSecret = await askForClientSecret(rl, Boolean(existing.auth.clientSecret));
+    const clientSecret = enteredSecret || existing.auth.clientSecret || '';
 
     const defaults = existing.thresholds ?? defaultThresholds();
     const sleepScoreMin = Number(
@@ -687,25 +778,54 @@ export async function runSetup(): Promise<void> {
       baselineConfig,
     });
 
-    const start = buildAuthorizeUrl({ clientId });
-    printText(`Opening browser for OAuth on http://127.0.0.1:${CALLBACK_PORT}/callback ...`);
-    await openExternalUrl(start.authorizeUrl);
-    const code = await captureOAuthCallback(start.state);
-    const tokenResponse = await exchangeCodeForTokens(
-      clientId,
-      clientSecret,
-      code,
-      start.codeVerifier,
-      start.redirectUri
-    );
+    const authStatus = getAuthStatus();
+    let tokenResponse;
+    const shouldReauthenticate = shouldOfferReauthentication(authStatus)
+      ? await confirm(rl, 'Existing auth detected. Re-authenticate with Oura', false)
+      : true;
+
+    if (shouldReauthenticate) {
+      const start = buildAuthorizeUrl({ clientId });
+      const browserPrompt = getBrowserOpenPrompt(isLikelyHeadlessSession());
+      const shouldOpenBrowser = await confirm(rl, browserPrompt.question, browserPrompt.defaultYes);
+
+      if (shouldOpenBrowser) {
+        printText(`Opening browser for OAuth on http://127.0.0.1:${CALLBACK_PORT}/callback ...`);
+        try {
+          await openExternalUrl(start.authorizeUrl);
+        } catch {
+          printText('Browser auto-open failed. Open this URL manually to continue OAuth:');
+          printText(start.authorizeUrl);
+        }
+      } else {
+        printText(`Open this URL manually to continue OAuth:\n${start.authorizeUrl}`);
+      }
+
+      const code = await captureOAuthCallback(start.state);
+      tokenResponse = await exchangeCodeForTokens(
+        clientId,
+        clientSecret,
+        code,
+        start.codeVerifier,
+        start.redirectUri
+      );
+    } else {
+      printText('Keeping existing auth tokens and skipping OAuth re-authentication.');
+    }
 
     const freshState = readState();
-    freshState.auth = {
-      ...freshState.auth,
-      ...tokenResponseToAuthPatch(tokenResponse),
-      clientId,
-      clientSecret,
-    };
+    freshState.auth = tokenResponse
+      ? {
+          ...freshState.auth,
+          ...tokenResponseToAuthPatch(tokenResponse),
+          clientId,
+          clientSecret,
+        }
+      : {
+          ...freshState.auth,
+          clientId,
+          clientSecret,
+        };
     freshState.thresholds = thresholds;
     freshState.baselineConfig = baselineConfig;
     writeState(freshState);
