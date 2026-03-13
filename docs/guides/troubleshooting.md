@@ -20,10 +20,21 @@ The browser callback did not match the initiating request. Close the browser tab
 The command requires today's `daily_sleep.score`, `daily_readiness.score`, and
 `daily_readiness.temperature_deviation`. Wait until Oura has processed the day and retry.
 
+## `summary morning-optimized` Says `already_delivered_today`
+
+An optimized-morning alert was already confirmed as delivered for today. This is expected duplicate suppression. The
+CLI will not recommend another send until the next calendar day.
+
 ## Baseline Refresh Failed
 
 The command still falls back to fixed thresholds and returns `baselineStatus: "refresh_failed"`. Check Oura API access
 with `ouraclaw-cli fetch sleep --start-date <yesterday> --end-date <today>` and rerun later.
+
+## `morning-optimized-confirm` Rejects the Delivery Key
+
+The key must come from the current sendable result of `summary morning-optimized`, and confirmation should happen only
+after the agent actually delivered the message. Re-run `ouraclaw-cli summary morning-optimized` to get a fresh
+`deliveryKey` if the original decision is no longer valid.
 
 ## OpenClaw Cannot Run the Skill
 

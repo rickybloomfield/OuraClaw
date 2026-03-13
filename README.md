@@ -60,6 +60,13 @@ ouraclaw-cli summary evening --text
 
 JSON is the default output mode. Use `--text` on summary commands when you want a ready-to-send recap.
 
+## Optimized Morning Flow
+
+`summary morning-optimized` is the quiet-by-default alert path: it compares today's Oura data against fixed thresholds
+plus your personal baseline and only recommends sending when something is genuinely out of the ordinary. See
+[Optimized morning routine](docs/guides/optimized-morning-routine.md) for the full decision logic, baseline tuning, and
+delivery-confirmation flow.
+
 ## OpenClaw Skill
 
 The packaged skill lives in `skills/oura/`. It requires the `ouraclaw-cli` binary to be installed on the same machine as
@@ -70,6 +77,7 @@ OpenClaw and keeps command invocations short and allowlist-friendly.
 - [Architecture](docs/architecture.md)
 - [Command reference](docs/guides/command-reference.md)
 - [Configuration](docs/guides/configuration.md)
+- [Optimized morning routine](docs/guides/optimized-morning-routine.md)
 - [Migration Guide](docs/guides/migrating-from-openclaw-plugin.md)
 - [Troubleshooting](docs/guides/troubleshooting.md)
 

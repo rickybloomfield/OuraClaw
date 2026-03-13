@@ -14,11 +14,13 @@ import {
 } from './auth';
 import { CALLBACK_PORT, OURA_ENDPOINTS } from './config';
 import {
+  defaultBaselineConfig,
   getAutomaticBaselineWindow,
   getManualBaselineWindow,
   isBaselineStale,
   rebuildAutomaticBaseline,
   rebuildManualBaseline,
+  validateBaselineConfig,
 } from './baseline';
 import { addDays, compareIsoDates, getTodayIsoDate, parseIsoDate } from './date-utils';
 import { evaluateMorningOptimized } from './morning-optimized';
@@ -29,6 +31,7 @@ import { readState, updateState, writeState } from './state-store';
 import { buildEveningSummary, buildMorningSummary, selectPreferredSleepRecord } from './summaries';
 import { defaultThresholds, validateThresholds } from './thresholds';
 import {
+  BaselineConfig,
   DailyActivity,
   DailyReadiness,
   DailySleep,
@@ -68,6 +71,10 @@ export function setConfigValue(state: OuraCliState, key: string, value: string):
     state.thresholds.readinessScoreMin = Number(value);
   } else if (key === 'thresholds.temperatureDeviationMax') {
     state.thresholds.temperatureDeviationMax = Number(value);
+  } else if (key === 'baselineConfig.lowerPercentile') {
+    state.baselineConfig.lowerPercentile = Number(value);
+  } else if (key === 'baselineConfig.breachMetricCount') {
+    state.baselineConfig.breachMetricCount = Number(value);
   } else if (key === 'auth.clientId') {
     state.auth.clientId = value;
   } else if (key === 'auth.clientSecret') {
@@ -77,6 +84,7 @@ export function setConfigValue(state: OuraCliState, key: string, value: string):
   }
 
   state.thresholds = validateThresholds(state.thresholds);
+  state.baselineConfig = validateBaselineConfig(state.baselineConfig);
   return state;
 }
 
@@ -133,23 +141,128 @@ function sleepPeriodToBaselineRecord(record: SleepPeriod): OuraRecord {
   };
 }
 
-export async function fetchSleepRecordsForRange(
+function buildDailyMap<T extends { day: string }>(records: T[]): Map<string, T> {
+  return new Map(records.map((record) => [record.day, record]));
+}
+
+function buildSleepPeriodMap(records: SleepPeriod[]): Map<string, OuraRecord> {
+  const grouped = new Map<string, SleepPeriod[]>();
+  for (const record of records) {
+    const current = grouped.get(record.day) ?? [];
+    current.push(record);
+    grouped.set(record.day, current);
+  }
+
+  return new Map(
+    [...grouped.entries()]
+      .map(([day, items]) => [day, selectPreferredSleepRecord(items, day)])
+      .filter((entry): entry is [string, SleepPeriod] => Boolean(entry[1]))
+      .map(([day, record]) => [day, sleepPeriodToBaselineRecord(record)])
+  );
+}
+
+function hasAnyMorningBaselineValue(record: OuraRecord): boolean {
+  return [
+    record.sleepScore,
+    record.readinessScore,
+    record.temperatureDeviation,
+    record.averageHrv,
+    record.lowestHeartRate,
+    record.totalSleepDuration,
+  ].some((value) => typeof value === 'number' && Number.isFinite(value));
+}
+
+export async function fetchMorningBaselineRecordsForRange(
   accessToken: string,
   startDay: string,
   endDay: string
 ): Promise<OuraRecord[]> {
-  const response = await fetchOuraData<SleepPeriod>(accessToken, 'sleep', startDay, endDay);
-  const grouped = new Map<string, SleepPeriod[]>();
-  for (const record of response.data) {
-    const records = grouped.get(record.day) ?? [];
-    records.push(record);
-    grouped.set(record.day, records);
+  const [dailySleepResponse, dailyReadinessResponse, sleepResponse] = await Promise.all([
+    fetchOuraData<DailySleep>(accessToken, 'daily_sleep', startDay, endDay),
+    fetchOuraData<DailyReadiness>(accessToken, 'daily_readiness', startDay, endDay),
+    fetchOuraData<SleepPeriod>(accessToken, 'sleep', startDay, endDay),
+  ]);
+
+  const dailySleepByDay = buildDailyMap(dailySleepResponse.data);
+  const dailyReadinessByDay = buildDailyMap(dailyReadinessResponse.data);
+  const sleepByDay = buildSleepPeriodMap(sleepResponse.data);
+  const days = new Set<string>([
+    ...dailySleepByDay.keys(),
+    ...dailyReadinessByDay.keys(),
+    ...sleepByDay.keys(),
+  ]);
+
+  return [...days]
+    .sort()
+    .map((day) => {
+      const dailySleep = dailySleepByDay.get(day);
+      const dailyReadiness = dailyReadinessByDay.get(day);
+      const sleepRecord = sleepByDay.get(day);
+
+      return {
+        day,
+        sleepScore: dailySleep?.score ?? null,
+        readinessScore: dailyReadiness?.score ?? null,
+        temperatureDeviation: dailyReadiness?.temperature_deviation ?? null,
+        averageHrv: sleepRecord?.averageHrv ?? null,
+        lowestHeartRate: sleepRecord?.lowestHeartRate ?? null,
+        totalSleepDuration: sleepRecord?.totalSleepDuration ?? null,
+      };
+    })
+    .filter(hasAnyMorningBaselineValue);
+}
+
+function hasMorningOptimizedDeliveredToday(state: OuraCliState, day: string): boolean {
+  return state.deliveries?.morningOptimized?.lastDeliveredDay === day;
+}
+
+async function buildMorningOptimizedResult(
+  applyDeliverySuppression = true
+): Promise<ReturnType<typeof evaluateMorningOptimized>> {
+  const day = getTodayIsoDate();
+  const accessToken = await ensureValidAccessToken();
+  const summaryInputs = await fetchTodaySummaryInputs(accessToken, day);
+  let state = readState();
+  let baseline = state.baseline;
+  let baselineStatus: 'ready' | 'missing' | 'stale' | 'refresh_failed' = baseline
+    ? 'ready'
+    : 'missing';
+
+  if (!baseline || isBaselineStale(baseline, new Date())) {
+    baselineStatus = baseline ? 'stale' : 'missing';
+    try {
+      const window = getAutomaticBaselineWindow(new Date());
+      const records = await fetchMorningBaselineRecordsForRange(
+        accessToken,
+        window.startDay,
+        window.endDay
+      );
+      baseline = rebuildAutomaticBaseline(new Date(), records, state.baselineConfig);
+      state = updateState({ baseline });
+      baseline = state.baseline;
+      baselineStatus = 'ready';
+    } catch {
+      baselineStatus = 'refresh_failed';
+    }
   }
 
-  return [...grouped.entries()]
-    .map(([day, records]) => selectPreferredSleepRecord(records, day))
-    .filter((record): record is SleepPeriod => Boolean(record))
-    .map(sleepPeriodToBaselineRecord);
+  return evaluateMorningOptimized({
+    today: {
+      day,
+      sleepScore: summaryInputs.dailySleep?.score ?? null,
+      readinessScore: summaryInputs.dailyReadiness?.score ?? null,
+      temperatureDeviation: summaryInputs.dailyReadiness?.temperature_deviation ?? null,
+      averageHrv: summaryInputs.sleepRecord?.average_hrv ?? null,
+      lowestHeartRate: summaryInputs.sleepRecord?.lowest_heart_rate ?? null,
+      totalSleepDuration: summaryInputs.sleepRecord?.total_sleep_duration ?? null,
+    },
+    thresholds: state.thresholds,
+    baselineConfig: state.baselineConfig,
+    baseline,
+    baselineStatus,
+    alreadyDeliveredToday: hasMorningOptimizedDeliveredToday(state, day),
+    applyDeliverySuppression,
+  });
 }
 
 export async function runSetup(): Promise<void> {
@@ -191,9 +304,30 @@ export async function runSetup(): Promise<void> {
       temperatureDeviationMax,
     });
 
+    const baselineDefaults: BaselineConfig = existing.baselineConfig ?? defaultBaselineConfig();
+    printText(
+      'Baseline sensitivity controls how wide your personal "ordinary" range is. 10 = fewer alerts, 25 = balanced default, 40 = more alerts.'
+    );
+    const lowerPercentile = Number(
+      (await rl.question(
+        `Baseline lower percentile (${baselineDefaults.lowerPercentile}; 10=fewer alerts, 25=balanced, 40=more alerts): `
+      )) || baselineDefaults.lowerPercentile
+    );
+    const breachMetricCount = Number(
+      (await rl.question(
+        `Baseline breach metric count (${baselineDefaults.breachMetricCount}; 1=more sensitive, 2+=less sensitive): `
+      )) || baselineDefaults.breachMetricCount
+    );
+
+    const baselineConfig = validateBaselineConfig({
+      lowerPercentile,
+      breachMetricCount,
+    });
+
     updateState({
       auth: { clientId, clientSecret },
       thresholds,
+      baselineConfig,
     });
 
     const start = buildAuthorizeUrl({ clientId });
@@ -216,6 +350,7 @@ export async function runSetup(): Promise<void> {
       clientSecret,
     };
     freshState.thresholds = thresholds;
+    freshState.baselineConfig = baselineConfig;
     writeState(freshState);
     printJson({
       ok: true,
@@ -243,11 +378,16 @@ export async function rebuildBaseline(mode: 'manual' | 'automatic'): Promise<voi
   const accessToken = await ensureValidAccessToken();
   const now = new Date();
   const window = mode === 'manual' ? getManualBaselineWindow(now) : getAutomaticBaselineWindow(now);
-  const records = await fetchSleepRecordsForRange(accessToken, window.startDay, window.endDay);
+  const { baselineConfig } = readState();
+  const records = await fetchMorningBaselineRecordsForRange(
+    accessToken,
+    window.startDay,
+    window.endDay
+  );
   const baseline =
     mode === 'manual'
-      ? rebuildManualBaseline(now, records)
-      : rebuildAutomaticBaseline(now, records);
+      ? rebuildManualBaseline(now, records, baselineConfig)
+      : rebuildAutomaticBaseline(now, records, baselineConfig);
   updateState({ baseline });
   printJson(baseline);
 }
@@ -291,45 +431,55 @@ export async function runEveningSummary(textMode: boolean): Promise<void> {
 }
 
 export async function runMorningOptimized(): Promise<void> {
-  const day = getTodayIsoDate();
-  const accessToken = await ensureValidAccessToken();
-  const summaryInputs = await fetchTodaySummaryInputs(accessToken, day);
-  let state = readState();
-  let baseline = state.baseline;
-  let baselineStatus: 'ready' | 'missing' | 'stale' | 'refresh_failed' = baseline
-    ? 'ready'
-    : 'missing';
+  printJson(await buildMorningOptimizedResult());
+}
 
-  if (!baseline || isBaselineStale(baseline, new Date())) {
-    baselineStatus = baseline ? 'stale' : 'missing';
-    try {
-      const window = getAutomaticBaselineWindow(new Date());
-      const records = await fetchSleepRecordsForRange(accessToken, window.startDay, window.endDay);
-      baseline = rebuildAutomaticBaseline(new Date(), records);
-      state = updateState({ baseline });
-      baseline = state.baseline;
-      baselineStatus = 'ready';
-    } catch {
-      baselineStatus = 'refresh_failed';
-    }
+export async function confirmMorningOptimizedDelivery(deliveryKey: string): Promise<void> {
+  const day = getTodayIsoDate();
+  const state = readState();
+  const existing = state.deliveries?.morningOptimized;
+
+  if (existing?.lastDeliveredDay === day && existing.lastDeliveryKey === deliveryKey) {
+    printJson({
+      ok: true,
+      confirmed: true,
+      alreadyConfirmed: true,
+      day,
+      deliveryKey,
+    });
+    return;
   }
 
-  const result = evaluateMorningOptimized({
-    today: {
-      day,
-      sleepScore: summaryInputs.dailySleep?.score ?? null,
-      readinessScore: summaryInputs.dailyReadiness?.score ?? null,
-      temperatureDeviation: summaryInputs.dailyReadiness?.temperature_deviation ?? null,
-      averageHrv: summaryInputs.sleepRecord?.average_hrv ?? null,
-      lowestHeartRate: summaryInputs.sleepRecord?.lowest_heart_rate ?? null,
-      totalSleepDuration: summaryInputs.sleepRecord?.total_sleep_duration ?? null,
+  if (existing?.lastDeliveredDay === day && existing.lastDeliveryKey !== deliveryKey) {
+    throw new Error('A different morning-optimized alert is already confirmed for today.');
+  }
+
+  const result = await buildMorningOptimizedResult(false);
+  if (
+    !result.dataReady ||
+    !result.shouldSend ||
+    !result.deliveryKey ||
+    result.deliveryKey !== deliveryKey
+  ) {
+    throw new Error("Invalid delivery key for today's sendable morning-optimized result.");
+  }
+
+  updateState({
+    deliveries: {
+      morningOptimized: {
+        lastDeliveredDay: day,
+        lastDeliveredAt: new Date().toISOString(),
+        lastDeliveryKey: deliveryKey,
+      },
     },
-    thresholds: state.thresholds,
-    baseline,
-    baselineStatus,
   });
 
-  printJson(result);
+  printJson({
+    ok: true,
+    confirmed: true,
+    day,
+    deliveryKey,
+  });
 }
 
 export function createProgram(): Command {
@@ -412,6 +562,12 @@ export function createProgram(): Command {
       await runMorningSummary(Boolean(options.text));
     });
   summary.command('morning-optimized').action(runMorningOptimized);
+  summary
+    .command('morning-optimized-confirm')
+    .requiredOption('--delivery-key <deliveryKey>', 'Confirm a delivered morning-optimized alert')
+    .action(async (options: { deliveryKey: string }) => {
+      await confirmMorningOptimizedDelivery(options.deliveryKey);
+    });
   summary
     .command('evening')
     .option('--text', 'Print sendable text')

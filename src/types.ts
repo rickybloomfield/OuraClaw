@@ -108,6 +108,11 @@ export interface FixedThresholdConfig {
   temperatureDeviationMax: number;
 }
 
+export interface BaselineConfig {
+  lowerPercentile: number;
+  breachMetricCount: number;
+}
+
 export interface BaselineMetricSnapshot {
   median: number;
   low: number;
@@ -128,11 +133,22 @@ export interface OuraCliState {
   schemaVersion: number;
   auth: OuraAuthState;
   thresholds: FixedThresholdConfig;
+  baselineConfig: BaselineConfig;
   baseline?: BaselineSnapshot;
+  deliveries?: {
+    morningOptimized?: {
+      lastDeliveredDay: string;
+      lastDeliveredAt: string;
+      lastDeliveryKey: string;
+    };
+  };
 }
 
 export interface OuraRecord {
   day: string;
+  sleepScore?: number | null;
+  readinessScore?: number | null;
+  temperatureDeviation?: number | null;
   averageHrv?: number | null;
   lowestHeartRate?: number | null;
   totalSleepDuration?: number | null;
@@ -177,8 +193,11 @@ export interface MorningOptimizedToday {
 export interface MorningOptimizedInput {
   today: MorningOptimizedToday;
   thresholds: FixedThresholdConfig;
+  baselineConfig: BaselineConfig;
   baseline?: BaselineSnapshot;
   baselineStatus?: 'ready' | 'missing' | 'stale' | 'refresh_failed';
+  alreadyDeliveredToday?: boolean;
+  applyDeliverySuppression?: boolean;
 }
 
 export interface MorningOptimizedResult {
@@ -187,6 +206,9 @@ export interface MorningOptimizedResult {
   shouldSend: boolean;
   baselineStatus?: 'ready' | 'missing' | 'stale' | 'refresh_failed';
   message?: string;
+  deliveryKey?: string;
+  alreadyDeliveredToday?: boolean;
+  breachedMetrics?: BaselineMetricKey[];
   today: MorningOptimizedToday;
   baseline?: BaselineSnapshot;
   reasons: string[];

@@ -20,7 +20,19 @@ export const DEFAULT_THRESHOLDS = {
   temperatureDeviationMax: 0.1,
 } as const;
 
-export const BASELINE_METRICS = ['averageHrv', 'lowestHeartRate', 'totalSleepDuration'] as const;
+export const DEFAULT_BASELINE_CONFIG = {
+  lowerPercentile: 25,
+  breachMetricCount: 1,
+} as const;
+
+export const BASELINE_METRICS = [
+  'sleepScore',
+  'readinessScore',
+  'temperatureDeviation',
+  'averageHrv',
+  'lowestHeartRate',
+  'totalSleepDuration',
+] as const;
 
 export const OURA_ENDPOINTS = [
   'daily_activity',

@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest';
 
 import {
+  defaultBaselineConfig,
   getAutomaticBaselineWindow,
   getManualBaselineWindow,
   isBaselineStale,
@@ -40,6 +41,26 @@ describe('baseline', () => {
     expect(baseline.metrics.averageHrv?.median).toBe(43);
     expect(baseline.metrics.lowestHeartRate?.low).toBe(49.75);
     expect(baseline.metrics.totalSleepDuration?.high).toBe(26125);
+  });
+
+  test('widens the ordinary band when configured percentile is lower', () => {
+    const baseline = rebuildManualBaseline(
+      new Date(Date.UTC(2026, 2, 13)),
+      [
+        { day: '2026-03-01', sleepScore: 70 },
+        { day: '2026-03-02', sleepScore: 72 },
+        { day: '2026-03-03', sleepScore: 74 },
+        { day: '2026-03-04', sleepScore: 76 },
+        { day: '2026-03-05', sleepScore: 78 },
+      ],
+      {
+        ...defaultBaselineConfig(),
+        lowerPercentile: 10,
+      }
+    );
+
+    expect(baseline.metrics.sleepScore?.low).toBeCloseTo(70.8);
+    expect(baseline.metrics.sleepScore?.high).toBeCloseTo(77.2);
   });
 
   test('marks stale baseline after one week', () => {

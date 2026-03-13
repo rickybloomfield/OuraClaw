@@ -18,6 +18,13 @@ describe('cli', () => {
     expect(versionOption?.flags).toBe('-V, --version');
   });
 
+  test('registers the morning optimized confirmation command', () => {
+    const summaryCommand = createProgram().commands.find((command) => command.name() === 'summary');
+    const summarySubcommands = summaryCommand?.commands.map((command) => command.name()).sort();
+
+    expect(summarySubcommands).toContain('morning-optimized-confirm');
+  });
+
   test('prints the package version for --version', async () => {
     let stdout = '';
     const program = createProgram();

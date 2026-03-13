@@ -1,6 +1,12 @@
-import { BASELINE_METRICS } from './config';
+import { BASELINE_METRICS, DEFAULT_BASELINE_CONFIG } from './config';
 import { addDays, getIsoWeekString, getWeekStartMonday, toIsoDate } from './date-utils';
-import { BaselineMetricKey, BaselineMetricSnapshot, BaselineSnapshot, OuraRecord } from './types';
+import {
+  BaselineConfig,
+  BaselineMetricKey,
+  BaselineMetricSnapshot,
+  BaselineSnapshot,
+  OuraRecord,
+} from './types';
 
 function percentile(sortedValues: number[], percentileValue: number): number {
   if (sortedValues.length === 1) {
@@ -19,7 +25,45 @@ function percentile(sortedValues: number[], percentileValue: number): number {
   return sortedValues[lowerIndex] * (1 - weight) + sortedValues[upperIndex] * weight;
 }
 
-function buildMetricSnapshot(values: number[]): BaselineMetricSnapshot | undefined {
+export function validateBaselineConfig(input: unknown): BaselineConfig {
+  const candidate = input as Partial<BaselineConfig>;
+  const config = {
+    lowerPercentile: Number(candidate.lowerPercentile),
+    breachMetricCount: Number(candidate.breachMetricCount),
+  };
+
+  if (!Number.isFinite(config.lowerPercentile) || !Number.isFinite(config.breachMetricCount)) {
+    throw new Error('Baseline configuration must be numeric.');
+  }
+
+  if (config.lowerPercentile <= 0 || config.lowerPercentile >= 50) {
+    throw new Error('baseline lower percentile must be greater than 0 and less than 50.');
+  }
+
+  if (!Number.isInteger(config.breachMetricCount)) {
+    throw new Error('baseline breach metric count must be an integer.');
+  }
+
+  if (config.breachMetricCount < 1 || config.breachMetricCount > BASELINE_METRICS.length) {
+    throw new Error(
+      `baseline breach metric count must be between 1 and ${BASELINE_METRICS.length}.`
+    );
+  }
+
+  return config;
+}
+
+export function defaultBaselineConfig(): BaselineConfig {
+  return {
+    lowerPercentile: DEFAULT_BASELINE_CONFIG.lowerPercentile,
+    breachMetricCount: DEFAULT_BASELINE_CONFIG.breachMetricCount,
+  };
+}
+
+function buildMetricSnapshot(
+  values: number[],
+  lowerPercentile: number
+): BaselineMetricSnapshot | undefined {
   if (values.length === 0) {
     return undefined;
   }
@@ -27,19 +71,19 @@ function buildMetricSnapshot(values: number[]): BaselineMetricSnapshot | undefin
   const sorted = [...values].sort((left, right) => left - right);
   return {
     median: percentile(sorted, 0.5),
-    low: percentile(sorted, 0.25),
-    high: percentile(sorted, 0.75),
+    low: percentile(sorted, lowerPercentile / 100),
+    high: percentile(sorted, (100 - lowerPercentile) / 100),
     sampleSize: sorted.length,
   };
 }
 
-function buildMetrics(records: OuraRecord[]) {
+function buildMetrics(records: OuraRecord[], baselineConfig: BaselineConfig) {
   const metrics = Object.fromEntries(
     BASELINE_METRICS.map((key) => {
       const values = records
         .map((record) => record[key])
         .filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
-      return [key, buildMetricSnapshot(values)];
+      return [key, buildMetricSnapshot(values, baselineConfig.lowerPercentile)];
     })
   ) as Partial<Record<BaselineMetricKey, BaselineMetricSnapshot>>;
 
@@ -76,7 +120,8 @@ export function getManualBaselineWindow(referenceDate: Date) {
 
 export function rebuildAutomaticBaseline(
   referenceDate: Date,
-  records: OuraRecord[]
+  records: OuraRecord[],
+  baselineConfig: BaselineConfig = defaultBaselineConfig()
 ): BaselineSnapshot {
   const window = getAutomaticBaselineWindow(referenceDate);
   return {
@@ -85,13 +130,14 @@ export function rebuildAutomaticBaseline(
     sourceStartDay: window.startDay,
     sourceEndDay: window.endDay,
     weeks: window.weeks,
-    metrics: buildMetrics(records),
+    metrics: buildMetrics(records, baselineConfig),
   };
 }
 
 export function rebuildManualBaseline(
   referenceDate: Date,
-  records: OuraRecord[]
+  records: OuraRecord[],
+  baselineConfig: BaselineConfig = defaultBaselineConfig()
 ): BaselineSnapshot {
   const window = getManualBaselineWindow(referenceDate);
   return {
@@ -99,7 +145,7 @@ export function rebuildManualBaseline(
     updatedAt: new Date().toISOString(),
     sourceStartDay: window.startDay,
     sourceEndDay: window.endDay,
-    metrics: buildMetrics(records),
+    metrics: buildMetrics(records, baselineConfig),
   };
 }
 

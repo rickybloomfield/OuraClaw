@@ -236,8 +236,11 @@ Interpret the JSON result as the source of truth:
 - If `ordinary` is `true`, do not send a message.
 - If `shouldSend` is `false`, do not send a message.
 - If `shouldSend` is `true`, compose the final channel message from this template in the delivery language using
-  `today`, `baseline`, `baselineStatus`, and `reasons`.
+  `today`, `baseline`, `baselineStatus`, `breachedMetrics`, and `reasons`.
 - If `baselineStatus` is `"refresh_failed"`, trust the CLI decision anyway; it already fell back to fixed thresholds.
+- After the agent successfully delivers the alert, it must confirm delivery by running
+  `ouraclaw-cli summary morning-optimized-confirm --delivery-key <deliveryKey>`.
+- Never confirm delivery if the send failed or was skipped.
 
 Send only the formatted alert, with no extra preamble or commentary.
 

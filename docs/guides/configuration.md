@@ -12,10 +12,24 @@ The setup wizard seeds these defaults:
 
 These thresholds are CLI-owned configuration, not skill-owned prompt text. Adjust them with `config set`.
 
+## Baseline Tuning
+
+The setup wizard also stores baseline tuning separately from fixed thresholds:
+
+- lower percentile: `25`
+- breach metric count: `1`
+
+Lower percentile controls how wide the personal ordinary band is. `10` is wide and quieter, `25` is the balanced
+default, and `40` is narrow and much more sensitive. Breach metric count controls how many unique same-day metric
+breaches are needed before the baseline path counts as triggered.
+
 ## Baseline Snapshot
 
 The baseline snapshot stores metadata about its source window plus per-metric bounds for:
 
+- `sleepScore`
+- `readinessScore`
+- `temperatureDeviation`
 - `average_hrv`
 - `lowest_heart_rate`
 - `total_sleep_duration`

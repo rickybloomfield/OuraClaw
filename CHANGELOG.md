@@ -9,6 +9,16 @@ All notable changes to this project will be documented in this file.
 - Added global `--version` / `-V` support so the CLI can print its package version without running a command.
 - Added a GitHub Actions CI workflow and README badges for CI, npm, and coverage status.
 - Added a migration guide for users uninstalling the legacy OpenClaw plugin and moving to the standalone CLI.
+- Added a delivery confirmation handshake for `summary morning-optimized` so the CLI can suppress duplicate sends after
+  successful same-day delivery.
+- Added detailed documentation for the optimized morning routine, including baseline bands, breach counting, and the
+  OpenClaw delivery-confirmation flow.
+
+### Changed
+
+- Expanded `summary morning-optimized` baseline evaluation to all six morning decision metrics and made baseline
+  sensitivity configurable through percentile bands and breach-count settings.
+- Updated the main README to highlight the optimized morning flow and link directly to the detailed guide.
 
 ## [0.2.0] - 2026-03-13
 

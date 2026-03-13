@@ -57,6 +57,8 @@ Prints all config/state fields or a specific key. Useful keys include:
 - `thresholds.sleepScoreMin`
 - `thresholds.readinessScoreMin`
 - `thresholds.temperatureDeviationMax`
+- `baselineConfig.lowerPercentile`
+- `baselineConfig.breachMetricCount`
 
 ### `ouraclaw-cli config set <key> <value>`
 
@@ -68,8 +70,13 @@ Builds the standard morning recap. Default output is JSON; `--text` prints the s
 
 ### `ouraclaw-cli summary morning-optimized`
 
-Returns JSON for the optimized alerting flow. The result includes `dataReady`, `ordinary`, `shouldSend`, `message`,
-`today`, optional `baseline`, and ordered `reasons`.
+Returns JSON for the optimized alerting flow. The result includes `dataReady`, `ordinary`, `shouldSend`, optional
+`deliveryKey`, `today`, optional `baseline`, optional `breachedMetrics`, and ordered `reasons`.
+
+### `ouraclaw-cli summary morning-optimized-confirm --delivery-key <deliveryKey>`
+
+Confirms that an optimized morning alert was actually delivered. This stores same-day delivery state so later
+`summary morning-optimized` runs can suppress duplicates for the rest of the day.
 
 ### `ouraclaw-cli summary evening`
 

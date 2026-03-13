@@ -18,6 +18,8 @@ describe('state-store', () => {
 
     expect(state.schemaVersion).toBe(1);
     expect(state.thresholds.sleepScoreMin).toBe(75);
+    expect(state.baselineConfig.lowerPercentile).toBe(25);
+    expect(state.deliveries).toEqual({});
     expect(state.auth.accessToken).toBeUndefined();
   });
 
@@ -54,16 +56,29 @@ describe('state-store', () => {
         readinessScoreMin: 75,
         temperatureDeviationMax: 0.1,
       },
+      baselineConfig: {
+        lowerPercentile: 25,
+        breachMetricCount: 1,
+      },
+      deliveries: {},
     });
 
     const next = updateState({
       auth: { accessToken: 'fresh-token' },
       thresholds: { readinessScoreMin: 72 },
+      deliveries: {
+        morningOptimized: {
+          lastDeliveredDay: '2026-03-13',
+          lastDeliveredAt: '2026-03-13T08:00:00.000Z',
+          lastDeliveryKey: 'abc123',
+        },
+      },
     });
 
     expect(next.auth.accessToken).toBe('fresh-token');
     expect(next.thresholds.sleepScoreMin).toBe(75);
     expect(next.thresholds.readinessScoreMin).toBe(72);
+    expect(next.deliveries?.morningOptimized?.lastDeliveryKey).toBe('abc123');
 
     const stateFile = path.join(home, 'ouraclaw-cli.json');
     const dirMode = fs.statSync(home).mode & 0o777;

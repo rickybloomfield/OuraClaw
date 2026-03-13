@@ -73,7 +73,6 @@ export function buildMorningSummary(params: {
     `Overnight: lowest HR ${params.sleepRecord?.lowest_heart_rate ?? 'n/a'} bpm | avg HR ${
       params.sleepRecord?.average_heart_rate ?? 'n/a'
     } bpm | HRV ${params.sleepRecord?.average_hrv ?? 'n/a'} ms`,
-    'Dive deeper in the Oura app: https://cloud.ouraring.com/app/v1/home — enjoy your day!',
   ];
 
   return {
@@ -114,7 +113,6 @@ export function buildEveningSummary(params: {
     )}) | Stress: ${params.dailyStress?.day_summary ?? 'not available yet'}`,
     `Last night's sleep: ${params.dailySleep?.score ?? 'n/a'} (${scoreLabel(params.dailySleep?.score)})`,
     'Wind down soon and give tomorrow a cleaner runway.',
-    'Dive deeper in the Oura app: https://cloud.ouraring.com/app/v1/home — sleep well!',
   ];
 
   return {

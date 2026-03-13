@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import {
+  DEFAULT_BASELINE_CONFIG,
   DEFAULT_THRESHOLDS,
   SCHEMA_VERSION,
   getLegacyConfigFilePath,
@@ -19,6 +20,11 @@ export function defaultState(): OuraCliState {
       readinessScoreMin: DEFAULT_THRESHOLDS.readinessScoreMin,
       temperatureDeviationMax: DEFAULT_THRESHOLDS.temperatureDeviationMax,
     },
+    baselineConfig: {
+      lowerPercentile: DEFAULT_BASELINE_CONFIG.lowerPercentile,
+      breachMetricCount: DEFAULT_BASELINE_CONFIG.breachMetricCount,
+    },
+    deliveries: {},
   };
 }
 
@@ -47,11 +53,31 @@ function normalizeState(input: Partial<OuraCliState> | null): OuraCliState {
     return base;
   }
 
+  const morningOptimizedDelivery = input.deliveries?.morningOptimized;
+  const normalizedMorningOptimizedDelivery =
+    morningOptimizedDelivery?.lastDeliveredDay &&
+    morningOptimizedDelivery.lastDeliveredAt &&
+    morningOptimizedDelivery.lastDeliveryKey
+      ? {
+          lastDeliveredDay: morningOptimizedDelivery.lastDeliveredDay,
+          lastDeliveredAt: morningOptimizedDelivery.lastDeliveredAt,
+          lastDeliveryKey: morningOptimizedDelivery.lastDeliveryKey,
+        }
+      : undefined;
+
   return {
     schemaVersion: SCHEMA_VERSION,
     auth: { ...base.auth, ...(input.auth ?? {}) },
     thresholds: { ...base.thresholds, ...(input.thresholds ?? {}) },
+    baselineConfig: { ...base.baselineConfig, ...(input.baselineConfig ?? {}) },
     baseline: input.baseline ?? base.baseline,
+    deliveries: {
+      ...base.deliveries,
+      ...(input.deliveries ?? {}),
+      ...(normalizedMorningOptimizedDelivery
+        ? { morningOptimized: normalizedMorningOptimizedDelivery }
+        : {}),
+    },
   };
 }
 
@@ -114,7 +140,22 @@ export function updateState(patch: Partial<OuraCliState>): OuraCliState {
     thresholds: patch.thresholds
       ? { ...current.thresholds, ...patch.thresholds }
       : current.thresholds,
+    baselineConfig: patch.baselineConfig
+      ? { ...current.baselineConfig, ...patch.baselineConfig }
+      : current.baselineConfig,
     baseline: patch.baseline === undefined ? current.baseline : patch.baseline,
+    deliveries: patch.deliveries
+      ? {
+          ...current.deliveries,
+          ...patch.deliveries,
+          morningOptimized: patch.deliveries.morningOptimized
+            ? {
+                ...current.deliveries?.morningOptimized,
+                ...patch.deliveries.morningOptimized,
+              }
+            : current.deliveries?.morningOptimized,
+        }
+      : current.deliveries,
   };
 
   writeState(next);

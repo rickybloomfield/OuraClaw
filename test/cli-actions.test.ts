@@ -89,6 +89,13 @@ describe('cli actions', () => {
 
   test('rebuilds manual baseline and prints it', async () => {
     ensureValidAccessToken.mockResolvedValue('token');
+    readState.mockReturnValue({
+      schemaVersion: 1,
+      auth: {},
+      thresholds: { sleepScoreMin: 75, readinessScoreMin: 75, temperatureDeviationMax: 0.1 },
+      baselineConfig: { lowerPercentile: 25, breachMetricCount: 1 },
+      deliveries: {},
+    });
     fetchOuraData.mockResolvedValue({
       data: [
         {
@@ -133,6 +140,7 @@ describe('cli actions', () => {
       schemaVersion: 1,
       auth: {},
       thresholds: { sleepScoreMin: 75, readinessScoreMin: 75, temperatureDeviationMax: 0.1 },
+      baselineConfig: { lowerPercentile: 25, breachMetricCount: 1 },
       baseline: {
         updatedAt: '2026-03-01T00:00:00.000Z',
         mode: 'calendar-weeks',
@@ -140,12 +148,14 @@ describe('cli actions', () => {
         sourceEndDay: '',
         metrics: {},
       },
+      deliveries: {},
     });
     isBaselineStale.mockReturnValue(true);
     updateState.mockReturnValue({
       schemaVersion: 1,
       auth: {},
       thresholds: { sleepScoreMin: 75, readinessScoreMin: 75, temperatureDeviationMax: 0.1 },
+      baselineConfig: { lowerPercentile: 25, breachMetricCount: 1 },
       baseline: {
         mode: 'calendar-weeks',
         updatedAt: '2026-03-13T00:00:00.000Z',
@@ -153,6 +163,7 @@ describe('cli actions', () => {
         sourceEndDay: '',
         metrics: {},
       },
+      deliveries: {},
     });
     rebuildAutomaticBaseline.mockReturnValue({
       mode: 'calendar-weeks',
@@ -178,6 +189,52 @@ describe('cli actions', () => {
       ordinary: true,
       dataReady: true,
       reasons: [],
+    });
+  });
+
+  test('records confirmed morning optimized delivery', async () => {
+    ensureValidAccessToken.mockResolvedValue('token');
+    fetchOuraData.mockResolvedValue({ data: [] });
+    readState.mockReturnValue({
+      schemaVersion: 1,
+      auth: {},
+      thresholds: { sleepScoreMin: 75, readinessScoreMin: 75, temperatureDeviationMax: 0.1 },
+      baselineConfig: { lowerPercentile: 25, breachMetricCount: 1 },
+      baseline: undefined,
+      deliveries: {},
+    });
+    isBaselineStale.mockReturnValue(false);
+    evaluateMorningOptimized.mockReturnValue({
+      shouldSend: true,
+      ordinary: false,
+      dataReady: true,
+      reasons: ['sleep_below_threshold'],
+      deliveryKey: 'abc123',
+      today: {
+        day: '2026-03-13',
+        sleepScore: 70,
+        readinessScore: 80,
+        temperatureDeviation: 0,
+      },
+    });
+
+    const { confirmMorningOptimizedDelivery } = await import('../src/cli');
+    await confirmMorningOptimizedDelivery('abc123');
+
+    expect(updateState).toHaveBeenCalledWith({
+      deliveries: {
+        morningOptimized: {
+          lastDeliveredDay: expect.stringMatching(/\d{4}-\d{2}-\d{2}/),
+          lastDeliveredAt: expect.any(String),
+          lastDeliveryKey: 'abc123',
+        },
+      },
+    });
+    expect(printJson).toHaveBeenCalledWith({
+      ok: true,
+      confirmed: true,
+      day: expect.stringMatching(/\d{4}-\d{2}-\d{2}/),
+      deliveryKey: 'abc123',
     });
   });
 });
