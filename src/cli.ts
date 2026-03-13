@@ -4,6 +4,7 @@ import { stdin as input, stdout as output } from 'node:process';
 import { promisify } from 'node:util';
 
 import { Command } from 'commander';
+import packageJson from '../package.json';
 
 import {
   ensureValidAccessToken,
@@ -335,6 +336,7 @@ export function createProgram(): Command {
   const program = new Command();
   program
     .name('ouraclaw-cli')
+    .version(packageJson.version, '-V, --version', 'Show CLI version')
     .description('Standalone CLI for Oura automation')
     .showHelpAfterError();
 

@@ -1,5 +1,18 @@
 # Command Reference
 
+## Invocation
+
+```bash
+ouraclaw-cli [global-options] <command> [command-options]
+```
+
+## Global Options
+
+| Flag | Description |
+|------|-------------|
+| `-V, --version` | Show CLI version |
+| `-h, --help` | Show help |
+
 ## Output Modes
 
 - JSON is the default output for every command.
