@@ -8,7 +8,7 @@ All notable changes to this project will be documented in this file.
 
 - Added a standalone `oura-cli-p` CLI with JSON-first commands for setup, auth, fetch, config, baseline management, and
   morning/evening summaries.
-- Added hardened OAuth helpers with `state`, PKCE, explicit `127.0.0.1` callback binding, and timeout cleanup.
+- Added hardened OAuth helpers with `state`, explicit `127.0.0.1` callback binding, and timeout cleanup.
 - Added local state management at `$HOME/.oura-cli-p/oura-cli-p.json`, including migration from the old OpenClaw plugin
   config path and private file-permission enforcement.
 - Added baseline and threshold decision logic for `summary morning-optimized`.
@@ -20,7 +20,13 @@ All notable changes to this project will be documented in this file.
 
 - Converted the project from an OpenClaw plugin package into a standalone CLI package that ships an optional skill.
 - Rewrote `skills/oura/SKILL.md` to invoke `oura-cli-p` directly instead of relying on an `oura_data` plugin tool.
+- Reworked `skills/oura/SKILL.md` so normal morning/evening summaries and optimized morning alerts are rendered from
+  skill-owned templates and channel-formatting guidance using JSON output from `oura-cli-p`, with delivery language
+  taken from the request rather than hardcoded English.
 - Replaced plugin-centric README/docs with standalone CLI architecture and command guides.
+- Adjusted OAuth authorize requests to match Oura's documented contract by using the exact
+  `http://localhost:9876/callback` redirect URI and removing undocumented PKCE parameters while keeping `state`
+  validation.
 
 ### Removed
 

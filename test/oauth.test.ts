@@ -16,15 +16,15 @@ async function sendCallback(port: number, query: string): Promise<void> {
 }
 
 describe('oauth', () => {
-  test('builds authorize url with state and pkce', () => {
+  test('builds authorize url with state and the documented redirect uri', () => {
     const result = buildAuthorizeUrl({ clientId: 'client-id' });
     const url = new URL(result.authorizeUrl);
 
     expect(url.searchParams.get('client_id')).toBe('client-id');
     expect(url.searchParams.get('state')).toBe(result.state);
-    expect(url.searchParams.get('code_challenge')).toBe(result.codeChallenge);
-    expect(url.searchParams.get('code_challenge_method')).toBe('S256');
-    expect(result.redirectUri).toBe('http://127.0.0.1:9876/callback');
+    expect(url.searchParams.get('code_challenge')).toBeNull();
+    expect(url.searchParams.get('code_challenge_method')).toBeNull();
+    expect(result.redirectUri).toBe('http://localhost:9876/callback');
   });
 
   test('creates a verifier and challenge pair', () => {

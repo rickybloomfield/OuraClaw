@@ -2,9 +2,14 @@
 
 ## OAuth Times Out
 
-- Confirm your Oura application redirect URI is `http://localhost:9876/callback`.
+- Confirm your Oura application redirect URI is exactly `http://localhost:9876/callback`.
 - Re-run `oura-cli-p setup`.
 - Ensure nothing else is already listening on port `9876`.
+
+## OAuth Shows `400 invalid_request`
+
+Oura usually returns this when the registered redirect URI does not match the authorize request exactly. Use
+`http://localhost:9876/callback`, not `http://127.0.0.1:9876/callback`.
 
 ## OAuth State Validation Fails
 

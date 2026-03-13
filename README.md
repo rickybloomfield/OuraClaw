@@ -32,6 +32,9 @@ The wizard:
 2. Opens the hardened OAuth flow in a browser.
 3. Stores tokens plus threshold defaults in `$HOME/.oura-cli-p/oura-cli-p.json`.
 
+When creating or updating your Oura application, register the redirect URI exactly as
+`http://localhost:9876/callback`. Oura validates the redirect URI string literally.
+
 ## Common Commands
 
 ```bash

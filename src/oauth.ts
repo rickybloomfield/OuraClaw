@@ -32,7 +32,6 @@ export function buildPkcePair(): { codeVerifier: string; codeChallenge: string }
 
 export function buildAuthorizeUrl(input: OAuthStartInput): OAuthStartResult {
   const state = generateRandomToken();
-  const { codeVerifier, codeChallenge } = buildPkcePair();
   const redirectUri = input.redirectUri ?? REDIRECT_URI;
   const params = new URLSearchParams({
     response_type: 'code',
@@ -40,15 +39,13 @@ export function buildAuthorizeUrl(input: OAuthStartInput): OAuthStartResult {
     redirect_uri: redirectUri,
     scope: input.scopes ?? OAUTH_SCOPES,
     state,
-    code_challenge: codeChallenge,
-    code_challenge_method: 'S256',
   });
 
   return {
     authorizeUrl: `${AUTHORIZE_URL}?${params.toString()}`,
     state,
-    codeVerifier,
-    codeChallenge,
+    codeVerifier: '',
+    codeChallenge: '',
     redirectUri,
   };
 }
@@ -99,7 +96,7 @@ export function exchangeCodeForTokens(
   clientId: string,
   clientSecret: string,
   code: string,
-  codeVerifier: string,
+  _codeVerifier: string,
   redirectUri = REDIRECT_URI
 ): Promise<OuraTokenResponse> {
   return postTokenRequest({
@@ -108,7 +105,6 @@ export function exchangeCodeForTokens(
     client_id: clientId,
     client_secret: clientSecret,
     redirect_uri: redirectUri,
-    code_verifier: codeVerifier,
   });
 }
 

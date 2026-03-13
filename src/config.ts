@@ -6,7 +6,7 @@ export const SCHEMA_VERSION = 1;
 
 export const CALLBACK_HOST = '127.0.0.1';
 export const CALLBACK_PORT = 9876;
-export const REDIRECT_URI = `http://${CALLBACK_HOST}:${CALLBACK_PORT}/callback`;
+export const REDIRECT_URI = `http://localhost:${CALLBACK_PORT}/callback`;
 export const AUTHORIZE_URL = 'https://cloud.ouraring.com/oauth/authorize';
 export const TOKEN_URL = 'https://api.ouraring.com/oauth/token';
 export const OURA_API_BASE = 'https://api.ouraring.com/v2/usercollection';

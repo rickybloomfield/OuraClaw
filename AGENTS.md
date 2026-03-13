@@ -7,7 +7,7 @@ This file is a repo map for AI agents working in `oura-cli-p`.
 This repository is the source of truth for Oura automation logic. It ships:
 
 - a standalone CLI (`oura-cli-p`)
-- an optional OpenClaw skill under `skills/oura/`
+- an OpenClaw skill under `skills/oura/`
 
 JSON output is the default mode for automation consumers. OpenClaw integration is skill-only; there is no plugin
 runtime in the final architecture.
@@ -76,7 +76,7 @@ npm run test:coverage
 
 ## Documentation and Changelog Rules
 
-- Before docs edits, read `.agents/dev-documentation.md`.
+- On any code change update documentation
 - Any functional or documentation change must be recorded in `CHANGELOG.md`.
 - Keep this file focused on repo role, contracts, navigation, and verification.
 
@@ -87,4 +87,4 @@ npm run test:coverage
 
 ## Git Policy
 
-Do not create commits unless explicitly requested. Use `.agents/dev-workflow.md` as canonical policy.
+Do not create commits unless explicitly requested.

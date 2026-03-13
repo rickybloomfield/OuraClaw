@@ -25,9 +25,10 @@ state change. On first read it also checks for the legacy OpenClaw plugin config
 
 ## OAuth
 
-OAuth uses a localhost callback bound to `127.0.0.1:9876`. The authorize URL includes both a random `state` token and a
-PKCE challenge. The callback handler rejects missing or mismatched state values, closes cleanly on timeout, and writes
-tokens only after a successful token exchange.
+OAuth uses the registered redirect URI `http://localhost:9876/callback`, because Oura validates redirect URIs exactly.
+The local callback server still binds only to `127.0.0.1:9876`, so the browser round-trip stays on the loopback
+interface. The authorize URL includes a random `state` token. The callback handler rejects missing or mismatched state
+values, closes cleanly on timeout, and writes tokens only after a successful token exchange.
 
 ## Baseline Policy
 
