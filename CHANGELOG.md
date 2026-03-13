@@ -4,33 +4,28 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-03-13
+
 ### Added
 
-- Added global `--version` / `-V` support so the CLI can print its package version without running a command.
-- Added a GitHub Actions CI workflow and README badges for CI, npm, and coverage status.
-- Added a migration guide for users uninstalling the legacy OpenClaw plugin and moving to the standalone CLI.
-- Added a delivery confirmation handshake for `summary morning-optimized` so the CLI can suppress duplicate sends after
-  successful same-day delivery.
-- Added detailed documentation for the optimized morning routine, including baseline bands, breach counting, and the
-  OpenClaw delivery-confirmation flow.
-- Added first-class `schedule` commands for OpenClaw cron setup, status, disable, and legacy plugin cron migration.
-- Added delivery-language-aware OpenClaw scheduling, including a repeated optimized morning watcher and a dedicated
-  scheduling guide.
-- Added an optimized watcher delivery mode that can either alert only on unusual days or send every day once today's
-  Oura data is actually ready.
-- Added a dedicated setup guide and restored the explicit Oura application creation steps near the top of the README.
+- Added global `--version` / `-V` support so the CLI can print its package version without running another command.
+- Added first-class OpenClaw scheduling commands for setup, status, disable, and legacy plugin cron migration.
+- Added delivery-language-aware scheduling, including a repeated optimized morning watcher that can re-check until
+  today's Oura data is ready.
+- Added a delivery confirmation handshake for `summary morning-optimized` so successful sends can suppress duplicate
+  same-day notifications.
+- Added migration and setup guides for users moving from the legacy OpenClaw plugin and configuring Oura application
+  credentials.
 
 ### Changed
 
-- Expanded `summary morning-optimized` baseline evaluation to all six morning decision metrics and made baseline
-  sensitivity configurable through percentile bands and breach-count settings.
-- Updated the main README to highlight the optimized morning flow and link directly to the detailed guide.
-- Updated `setup` so it can hand off into the same scheduling walkthrough when OpenClaw is available.
-- Updated the development toolchain to current supported Vitest and ESLint stacks, including migration to ESLint flat
-  config and removal of deprecated install-time dependency warnings.
-- Updated setup so it no longer echoes the stored client secret, asks before opening the browser for OAuth with a
-  headless-aware default, defaults to reusing existing auth unless re-authentication is explicitly requested, and ends
-  with a clearer prompt to continue into scheduled delivery setup when OpenClaw is installed.
+- Expanded `summary morning-optimized` to evaluate all six morning decision metrics against the personalized baseline,
+  with configurable percentile bands and breached-metric counts.
+- Added an optimized watcher delivery mode that can either alert only on unusual days or send every day once today's
+  Oura data is ready.
+- Updated setup to reuse existing auth by default, stop echoing the stored client secret, ask before opening the OAuth
+  browser flow with a headless-aware default, and hand off directly into scheduled delivery setup when OpenClaw is
+  installed.
 
 ## [0.2.0] - 2026-03-13
 

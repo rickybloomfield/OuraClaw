@@ -1,7 +1,11 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, test } from 'vitest';
 import { CommanderError } from 'commander';
 
 import { createProgram } from '../src/cli';
+
+const packageVersion = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
+  .version as string;
 
 describe('cli', () => {
   test('registers the expected top-level commands', () => {
@@ -61,7 +65,7 @@ describe('cli', () => {
     await expect(program.parseAsync(['node', 'ouraclaw-cli', '--version'])).rejects.toMatchObject({
       code: 'commander.version',
     } satisfies Partial<CommanderError>);
-    expect(stdout.trim()).toBe('0.2.0');
+    expect(stdout.trim()).toBe(packageVersion);
   });
 
   test('prints the package version for -V', async () => {
@@ -78,6 +82,6 @@ describe('cli', () => {
     await expect(program.parseAsync(['node', 'ouraclaw-cli', '-V'])).rejects.toMatchObject({
       code: 'commander.version',
     } satisfies Partial<CommanderError>);
-    expect(stdout.trim()).toBe('0.2.0');
+    expect(stdout.trim()).toBe(packageVersion);
   });
 });
