@@ -1,5 +1,6 @@
 import readline from "readline";
-import { exec, execSync, execFileSync } from "child_process";
+import { exec, execSync } from "child_process";
+import { runOpenclaw } from "./cron-setup";
 import { OuraConfig } from "./types";
 import {
   buildAuthorizeUrl,
@@ -61,7 +62,7 @@ function openUrl(url: string): void {
     process.platform === "darwin"
       ? `open "${url}"`
       : process.platform === "win32"
-        ? `start "${url}"`
+        ? `start "" "${url}"`
         : `xdg-open "${url}"`;
   exec(cmd);
 }
@@ -95,10 +96,7 @@ interface ChannelTarget {
 
 function getChannelConfig(channelId: string): any {
   try {
-    const output = execFileSync("openclaw", ["config", "get", `channels.${channelId}`], {
-      encoding: "utf-8",
-      timeout: 10_000,
-    });
+    const output = runOpenclaw(["config", "get", `channels.${channelId}`]);
     return JSON.parse(output);
   } catch {
     return null;
@@ -109,10 +107,7 @@ function getConfiguredChannelTargets(): ChannelTarget[] {
   // First, get the list of configured channels
   let channelIds: string[] = [];
   try {
-    const output = execSync("openclaw channels list --json --no-usage", {
-      encoding: "utf-8",
-      timeout: 10_000,
-    });
+    const output = runOpenclaw(["channels", "list", "--json", "--no-usage"]);
     const data = JSON.parse(output);
     const chat = data?.chat;
     if (chat && typeof chat === "object") {

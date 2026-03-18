@@ -1,4 +1,4 @@
-import { execFileSync } from "child_process";
+import { execSync } from "child_process";
 import path from "path";
 import { OuraConfig } from "./types";
 import { updateConfig } from "./token-store";
@@ -8,8 +8,15 @@ function timeToCron(time: string): string {
   return `${minutes} ${hours} * * *`;
 }
 
-function runOpenclaw(args: string[]): string {
-  return execFileSync("openclaw", args, { encoding: "utf-8" }).trim();
+/**
+ * Run an openclaw CLI command. Uses execSync with shell so that platform
+ * command shims (.cmd on Windows) are resolved automatically. Each argument
+ * is individually quoted to protect spaces and special characters.
+ */
+export function runOpenclaw(args: string[]): string {
+  const quoted = args.map((a) => `"${a.replace(/"/g, '\\"')}"`);
+  const cmd = `openclaw ${quoted.join(" ")}`;
+  return execSync(cmd, { encoding: "utf-8" }).trim();
 }
 
 function listAllJobs(): any[] {
