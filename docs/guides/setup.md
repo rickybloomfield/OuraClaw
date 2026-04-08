@@ -3,6 +3,8 @@
 This guide covers the first-run path for `ouraclaw-cli`, including how to create the Oura application that the CLI
 needs for OAuth.
 
+`ouraclaw-cli` requires Node.js 20 or newer.
+
 ## 1. Create an Oura Application
 
 Before running `ouraclaw-cli setup`, create an app in the Oura developer portal:

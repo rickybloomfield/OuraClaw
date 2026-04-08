@@ -6,6 +6,8 @@
 ouraclaw-cli [global-options] <command> [command-options]
 ```
 
+Runtime requirement: Node.js 20 or newer.
+
 ## Global Options
 
 | Flag | Description |

@@ -1,5 +1,11 @@
 # Troubleshooting
 
+## Install Fails or the CLI Will Not Start
+
+- Confirm you are running Node.js 20 or newer.
+- Reinstall dependencies or the global package after switching Node versions.
+- Run `ouraclaw-cli --version` to verify the binary is reachable after installation.
+
 ## OAuth Times Out
 
 - Confirm your Oura application redirect URI is exactly `http://localhost:9876/callback`.
@@ -42,5 +48,6 @@ after the agent actually delivered the message. Re-run `ouraclaw-cli summary mor
 ## OpenClaw Cannot Run the Skill
 
 - Install `ouraclaw-cli` on the same machine as OpenClaw.
+- Ensure that machine is running Node.js 20 or newer.
 - Ensure the binary is on `PATH`.
 - Keep the skill command allowlist broad enough for the documented invocations in `skills/oura/SKILL.md`.

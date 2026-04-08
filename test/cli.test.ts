@@ -4,8 +4,15 @@ import { CommanderError } from 'commander';
 
 import { createProgram } from '../src/cli';
 
-const packageVersion = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
-  .version as string;
+const packageJson = JSON.parse(
+  readFileSync(new URL('../package.json', import.meta.url), 'utf8')
+) as {
+  version: string;
+  engines: {
+    node: string;
+  };
+};
+const packageVersion = packageJson.version;
 
 describe('cli', () => {
   test('registers the expected top-level commands', () => {
@@ -83,5 +90,9 @@ describe('cli', () => {
       code: 'commander.version',
     } satisfies Partial<CommanderError>);
     expect(stdout.trim()).toBe(packageVersion);
+  });
+
+  test('declares a Node 20 engine floor', () => {
+    expect(packageJson.engines.node).toBe('>=20.0.0');
   });
 });

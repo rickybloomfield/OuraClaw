@@ -1,0 +1,44 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+    groups:
+      phase-1-safe-updates:
+        applies-to: "version-updates"
+        patterns:
+          - "@eslint/js"
+          - "@types/node"
+          - "@vitest/coverage-v8"
+          - "eslint"
+          - "eslint-config-prettier"
+          - "globals"
+          - "prettier"
+          - "tsx"
+          - "typescript-eslint"
+          - "vitest"
+      phase-2-typescript:
+        applies-to: "version-updates"
+        patterns:
+          - "typescript"
+      phase-3-runtime:
+        applies-to: "version-updates"
+        patterns:
+          - "commander"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+    groups:
+      github-actions:
+        applies-to: "version-updates"
+        patterns:
+          - "*"

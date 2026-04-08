@@ -8,6 +8,8 @@ openclaw plugins uninstall ouraclaw
 
 Restart the OpenClaw gateway if prompted.
 
+Make sure the machine running the CLI is on Node.js 20 or newer.
+
 Then install the standalone CLI:
 
 ```bash

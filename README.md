@@ -14,6 +14,8 @@ builds summary output, and ships an optional OpenClaw skill that invokes the CLI
 
 ## Install
 
+`ouraclaw-cli` supports Node.js 20 and newer.
+
 ```bash
 npm install -g @robertvii/ouraclaw-cli
 ```
@@ -128,6 +130,8 @@ OpenClaw and keeps command invocations short and allowlist-friendly.
 - [Troubleshooting](docs/guides/troubleshooting.md)
 
 ## Development
+
+Use Node.js 20 or newer for local development and CI parity.
 
 ```bash
 npm install
