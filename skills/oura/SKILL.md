@@ -73,6 +73,8 @@ decision.
 - Convert durations from seconds to `Xh Ym` where needed.
 - Keep summaries scannable because the user may be reading on a phone.
 - Adapt formatting to the delivery channel using the guide below.
+- For `summary week-overview`, prefer one line per day. Use `days[].metrics` in `metricOrder`, prefix metrics with
+  `attention=true` using `⚠️`, and omit entries listed only in `missingMetrics`.
 
 ## Channel Formatting Guide
 

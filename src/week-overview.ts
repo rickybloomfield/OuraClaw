@@ -15,6 +15,15 @@ import {
   WeekOverviewTopAttentionMetric,
 } from './types';
 
+const metricOrder: BaselineMetricKey[] = [
+  'sleepScore',
+  'readinessScore',
+  'totalSleepDuration',
+  'temperatureDeviation',
+  'lowestHeartRate',
+  'averageHrv',
+];
+
 const metricUnits: Record<BaselineMetricKey, WeekOverviewMetric['unit']> = {
   sleepScore: 'score',
   readinessScore: 'score',
@@ -24,29 +33,7 @@ const metricUnits: Record<BaselineMetricKey, WeekOverviewMetric['unit']> = {
   totalSleepDuration: 'seconds',
 };
 
-function average(values: Array<number | null | undefined>): number | null {
-  const numeric = values.filter((value): value is number => typeof value === 'number');
-  if (numeric.length === 0) {
-    return null;
-  }
-  return numeric.reduce((sum, value) => sum + value, 0) / numeric.length;
-}
-
-function findMaxDay(days: MorningOptimizedToday[], metric: BaselineMetricKey): string | null {
-  const ranked = days
-    .map((day) => ({ day: day.day, value: day[metric] }))
-    .filter((entry): entry is { day: string; value: number } => typeof entry.value === 'number')
-    .sort((left, right) => right.value - left.value);
-  return ranked[0]?.day ?? null;
-}
-
-function findMinDay(days: MorningOptimizedToday[], metric: BaselineMetricKey): string | null {
-  const ranked = days
-    .map((day) => ({ day: day.day, value: day[metric] }))
-    .filter((entry): entry is { day: string; value: number } => typeof entry.value === 'number')
-    .sort((left, right) => left.value - right.value);
-  return ranked[0]?.day ?? null;
-}
+const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 function buildFallbackSignals(today: MorningOptimizedToday): MetricSignal[] {
   return BASELINE_METRICS.map((metric) => ({
@@ -59,64 +46,72 @@ function buildFallbackSignals(today: MorningOptimizedToday): MetricSignal[] {
   }));
 }
 
-function toWeekMetric(signal: MetricSignal): WeekOverviewMetric {
-  return {
-    metric: signal.metric,
-    value: signal.value,
-    unit: metricUnits[signal.metric],
-    attention: signal.attention,
-    severity: signal.severity,
-    direction: signal.direction,
-    reasons: signal.reasons,
-    ...(signal.baselineMedian === undefined ? {} : { baselineMedian: signal.baselineMedian }),
-    ...(signal.baselineLow === undefined ? {} : { baselineLow: signal.baselineLow }),
-    ...(signal.baselineHigh === undefined ? {} : { baselineHigh: signal.baselineHigh }),
-  };
-}
-
 function formatTemperature(value: number): string {
   return `${value >= 0 ? '+' : ''}${value.toFixed(1)}C`;
 }
 
+function formatMetricValue(metric: BaselineMetricKey, value: number): string {
+  switch (metric) {
+    case 'sleepScore':
+    case 'readinessScore':
+      return String(value);
+    case 'temperatureDeviation':
+      return formatTemperature(value);
+    case 'averageHrv':
+      return `${value} ms`;
+    case 'lowestHeartRate':
+      return `${value} bpm`;
+    case 'totalSleepDuration':
+      return formatDuration(value);
+  }
+}
+
+function toWeekMetric(signal: MetricSignal): WeekOverviewMetric | null {
+  if (signal.value == null) {
+    return null;
+  }
+  return {
+    key: signal.metric,
+    value: signal.value,
+    unit: metricUnits[signal.metric],
+    displayValue: formatMetricValue(signal.metric, signal.value),
+    attention: signal.attention,
+  };
+}
+
+function getWeekday(day: string): string {
+  const [year, month, date] = day.split('-').map(Number);
+  return weekdays[new Date(Date.UTC(year, month - 1, date)).getUTCDay()];
+}
+
 function buildSummaryLine(metrics: WeekOverviewMetric[]): string {
-  const summaryMetricOrder: BaselineMetricKey[] = [
-    'sleepScore',
-    'readinessScore',
-    'totalSleepDuration',
-    'temperatureDeviation',
-    'lowestHeartRate',
-    'averageHrv',
-  ];
-  const formatters: Record<BaselineMetricKey, (value: number) => string> = {
-    sleepScore: (value) => `Sleep ${value}`,
-    readinessScore: (value) => `Readiness ${value}`,
-    temperatureDeviation: (value) => `Temp ${formatTemperature(value)}`,
-    averageHrv: (value) => `HRV ${value} ms`,
-    lowestHeartRate: (value) => `Lowest HR ${value} bpm`,
-    totalSleepDuration: (value) => `Total ${formatDuration(value)}`,
+  const labels: Record<BaselineMetricKey, string> = {
+    sleepScore: 'Sleep',
+    readinessScore: 'Readiness',
+    temperatureDeviation: 'Temp',
+    averageHrv: 'HRV',
+    lowestHeartRate: 'Lowest HR',
+    totalSleepDuration: 'Total',
   };
 
-  return summaryMetricOrder
+  return metricOrder
     .flatMap((metric) => {
-      const item = metrics.find((entry) => entry.metric === metric);
-      if (!item || item.value == null) {
+      const item = metrics.find((entry) => entry.key === metric);
+      if (!item) {
         return [];
       }
       const prefix = item.attention ? '⚠️ ' : '';
-      return `${prefix}${formatters[metric](item.value)}`;
+      return `${prefix}${labels[metric]} ${item.displayValue}`;
     })
     .join(' | ');
 }
 
 function buildTopAttentionMetrics(days: WeekOverviewDay[]): WeekOverviewTopAttentionMetric[] {
   return BASELINE_METRICS.map((metric) => {
-    const attentionDays = days
-      .filter((day) => day.metrics.some((entry) => entry.metric === metric && entry.attention))
-      .map((day) => day.day);
+    const count = days.filter((day) => day.attentionMetrics.includes(metric)).length;
     return {
       metric,
-      count: attentionDays.length,
-      days: attentionDays,
+      count,
     };
   })
     .filter((entry) => entry.count > 0)
@@ -160,16 +155,27 @@ export function buildWeekOverview(input: {
     });
     const signals =
       result.metricSignals.length > 0 ? result.metricSignals : buildFallbackSignals(today);
-    const metrics = signals.map(toWeekMetric);
+    const metrics = metricOrder
+      .map((metric) => signals.find((signal) => signal.metric === metric))
+      .flatMap((signal) => {
+        const metric = signal ? toWeekMetric(signal) : null;
+        return metric ? [metric] : [];
+      });
+    const attentionMetrics = metricOrder.filter((metric) =>
+      signals.some((signal) => signal.metric === metric && signal.attention)
+    );
+    const missingMetrics = metricOrder.filter((metric) =>
+      signals.some((signal) => signal.metric === metric && signal.value == null)
+    );
 
     return {
       day: today.day,
+      weekday: getWeekday(today.day),
       dataReady: result.dataReady,
       shouldAlert: result.shouldAlert,
       summaryLine: buildSummaryLine(metrics),
-      alertMetrics: result.alertMetrics,
-      alertReasons: result.alertReasons,
-      skipReasons: result.skipReasons,
+      attentionMetrics,
+      missingMetrics,
       metrics,
     };
   });
@@ -182,14 +188,10 @@ export function buildWeekOverview(input: {
       timezone: input.timezone,
     },
     baselineStatus: input.baselineStatus,
+    metricOrder,
     overview: {
       readyDays: days.filter((day) => day.dataReady).length,
       attentionDays: days.filter((day) => day.metrics.some((metric) => metric.attention)).length,
-      averageSleepScore: average(todayValues.map((day) => day.sleepScore)),
-      averageReadinessScore: average(todayValues.map((day) => day.readinessScore)),
-      averageTotalSleepDuration: average(todayValues.map((day) => day.totalSleepDuration)),
-      bestSleepDay: findMaxDay(todayValues, 'sleepScore'),
-      lowestReadinessDay: findMinDay(todayValues, 'readinessScore'),
       topAttentionMetrics: buildTopAttentionMetrics(days),
     },
     days,

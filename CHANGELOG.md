@@ -23,7 +23,8 @@ All notable changes to this project will be documented in this file.
 - Moved setup's existing-auth reauthentication prompt before threshold and baseline tuning.
 - Fixed range-based sleep record fetching so weekly and baseline summaries include overnight sleep that started the
   previous calendar day.
-- Improved weekly overview summary lines to show available metrics only and mark attention metrics inline.
+- Compacted weekly overview JSON around localization-friendly metric entries, ordered daily summary lines, attention
+  metric lists, and missing metric lists.
 - Upgraded runtime and tooling dependencies in phases, including `commander` 14, TypeScript 6, ESLint 10.2, Vitest 4.1.3, and related type/lint packages.
 - Raised the documented and enforced Node.js engine floor to 20 to match the supported runtime and CI.
 - Updated the TypeScript compiler configuration from legacy Node resolution to `Node16`/`node16` so typecheck stays compatible with TypeScript 6.

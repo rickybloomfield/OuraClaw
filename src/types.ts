@@ -281,33 +281,27 @@ export interface SummaryResult {
 }
 
 export interface WeekOverviewMetric {
-  metric: BaselineMetricKey;
-  value: number | null;
+  key: BaselineMetricKey;
+  value: number;
   unit: 'score' | 'celsius' | 'milliseconds' | 'bpm' | 'seconds';
+  displayValue: string;
   attention: boolean;
-  severity: MetricSignalSeverity;
-  direction: MetricSignalDirection;
-  reasons: string[];
-  baselineMedian?: number;
-  baselineLow?: number;
-  baselineHigh?: number;
 }
 
 export interface WeekOverviewDay {
   day: string;
+  weekday: string;
   dataReady: boolean;
   shouldAlert: boolean;
   summaryLine: string;
-  alertMetrics: BaselineMetricKey[];
-  alertReasons: string[];
-  skipReasons: string[];
+  attentionMetrics: BaselineMetricKey[];
+  missingMetrics: BaselineMetricKey[];
   metrics: WeekOverviewMetric[];
 }
 
 export interface WeekOverviewTopAttentionMetric {
   metric: BaselineMetricKey;
   count: number;
-  days: string[];
 }
 
 export interface WeekOverviewResult {
@@ -318,14 +312,10 @@ export interface WeekOverviewResult {
     timezone: string;
   };
   baselineStatus: 'ready' | 'missing' | 'stale' | 'refresh_failed';
+  metricOrder: BaselineMetricKey[];
   overview: {
     readyDays: number;
     attentionDays: number;
-    averageSleepScore: number | null;
-    averageReadinessScore: number | null;
-    averageTotalSleepDuration: number | null;
-    bestSleepDay: string | null;
-    lowestReadinessDay: string | null;
     topAttentionMetrics: WeekOverviewTopAttentionMetric[];
   };
   days: WeekOverviewDay[];

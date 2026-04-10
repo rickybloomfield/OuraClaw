@@ -88,33 +88,47 @@ describe('week-overview', () => {
       timezone: 'Europe/Vienna',
     });
     expect(result.days).toHaveLength(7);
+    expect(result.metricOrder).toEqual([
+      'sleepScore',
+      'readinessScore',
+      'totalSleepDuration',
+      'temperatureDeviation',
+      'lowestHeartRate',
+      'averageHrv',
+    ]);
     expect(result.overview.readyDays).toBe(4);
     expect(result.overview.attentionDays).toBe(2);
-    expect(result.overview.bestSleepDay).toBe('2026-04-04');
+    expect(result.overview.topAttentionMetrics).toEqual([
+      { metric: 'averageHrv', count: 2 },
+      { metric: 'lowestHeartRate', count: 1 },
+    ]);
     expect(result.days[1]).toEqual(
       expect.objectContaining({
         day: '2026-04-05',
+        weekday: 'Sunday',
         shouldAlert: true,
         summaryLine:
           'Sleep 81 | Readiness 82 | Total 7h 30m | Temp +0.0C | ⚠️ Lowest HR 55 bpm | ⚠️ HRV 30 ms',
-        alertMetrics: expect.arrayContaining(['averageHrv', 'lowestHeartRate']),
+        attentionMetrics: ['lowestHeartRate', 'averageHrv'],
+        missingMetrics: [],
       })
     );
     expect(result.days[1].metrics).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({
-          metric: 'averageHrv',
+        {
+          key: 'averageHrv',
+          value: 30,
+          unit: 'milliseconds',
+          displayValue: '30 ms',
           attention: true,
-          reasons: ['baseline_hrv_low'],
-        }),
+        },
       ])
     );
     expect(result.days[2].shouldAlert).toBe(false);
     expect(result.days[2].metrics).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          metric: 'averageHrv',
-          severity: 'better',
+          key: 'averageHrv',
           attention: false,
         }),
       ])
@@ -132,7 +146,15 @@ describe('week-overview', () => {
         day: '2026-04-10',
         dataReady: false,
         summaryLine: '',
-        skipReasons: expect.arrayContaining(['missing_sleep_score']),
+        missingMetrics: [
+          'sleepScore',
+          'readinessScore',
+          'totalSleepDuration',
+          'temperatureDeviation',
+          'lowestHeartRate',
+          'averageHrv',
+        ],
+        metrics: [],
       })
     );
   });
