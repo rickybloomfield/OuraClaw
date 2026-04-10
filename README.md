@@ -140,6 +140,10 @@ npm run typecheck
 npm test
 npm run test:coverage
 ./code-quality.sh
+
+# example command invocations:
+npm run dev -- fetch daily_sleep
+npm run dev -- summary morning-optimized
 ```
 
 ## License
