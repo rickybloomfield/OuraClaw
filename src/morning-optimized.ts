@@ -98,6 +98,7 @@ function buildMetricSignal(
     direction: 'not_evaluated',
     severity: 'normal',
     attention: false,
+    reasons: [],
   };
 
   if (snapshot) {
@@ -118,10 +119,16 @@ function buildMetricSignal(
       signal.direction = 'below_baseline';
       signal.severity = isLowerValueWorse(metric) ? 'worse' : 'better';
       baselineAlertReason = signal.severity === 'worse' ? baselineLowReasonMap[metric] : undefined;
+      if (baselineAlertReason) {
+        signal.reasons.push(baselineAlertReason);
+      }
     } else if (value > snapshot.high) {
       signal.direction = 'above_baseline';
       signal.severity = isHigherValueWorse(metric) ? 'worse' : 'better';
       baselineAlertReason = signal.severity === 'worse' ? baselineHighReasonMap[metric] : undefined;
+      if (baselineAlertReason) {
+        signal.reasons.push(baselineAlertReason);
+      }
     } else {
       signal.direction = 'in_range';
       signal.severity = 'normal';
@@ -131,6 +138,7 @@ function buildMetricSignal(
   if (fixedReasons.length > 0) {
     signal.direction = 'outside_fixed_threshold';
     signal.severity = 'worse';
+    signal.reasons.push(...fixedReasons);
   }
 
   signal.attention = signal.severity === 'worse';

@@ -57,6 +57,7 @@ decision.
 - Morning recap data: `ouraclaw-cli summary morning`
 - Evening recap data: `ouraclaw-cli summary evening`
 - Morning optimized decision: `ouraclaw-cli summary morning-optimized`
+- Seven-day overview: `ouraclaw-cli summary week-overview`
 
 ## Date Rules
 
@@ -291,5 +292,6 @@ Worth taking today a bit gentler if you can.
 - "What's my readiness?" -> `ouraclaw-cli fetch daily_readiness`
 - "How active was I today?" -> `ouraclaw-cli fetch daily_activity`
 - "How stressed was I?" -> `ouraclaw-cli fetch daily_stress`
+- "How was my week?" -> `ouraclaw-cli summary week-overview`
 
 Do not recreate Oura business logic in prompt text when the CLI already exposes it.

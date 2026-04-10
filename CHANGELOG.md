@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 
 - Added Dependabot configuration for grouped npm and GitHub Actions updates.
 - Added `auth login` for re-authenticating with Oura without changing thresholds, baseline tuning, or schedules.
+- Added `summary week-overview` for seven-day JSON summaries with optimized-metric attention details.
 
 ### Changed
 
@@ -20,6 +21,8 @@ All notable changes to this project will be documented in this file.
 - Clarified setup output when OpenClaw is unavailable and added explicit percentile-band wording to the baseline
   sensitivity prompt.
 - Moved setup's existing-auth reauthentication prompt before threshold and baseline tuning.
+- Fixed range-based sleep record fetching so weekly and baseline summaries include overnight sleep that started the
+  previous calendar day.
 - Upgraded runtime and tooling dependencies in phases, including `commander` 14, TypeScript 6, ESLint 10.2, Vitest 4.1.3, and related type/lint packages.
 - Raised the documented and enforced Node.js engine floor to 20 to match the supported runtime and CI.
 - Updated the TypeScript compiler configuration from legacy Node resolution to `Node16`/`node16` so typecheck stays compatible with TypeScript 6.

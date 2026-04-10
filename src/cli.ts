@@ -44,6 +44,7 @@ import {
 import { readState, updateState, writeState } from './state-store';
 import { buildEveningSummary, buildMorningSummary, selectPreferredSleepRecord } from './summaries';
 import { defaultThresholds, validateThresholds } from './thresholds';
+import { buildWeekOverview } from './week-overview';
 import {
   BaselineConfig,
   DailyActivity,
@@ -630,6 +631,47 @@ export function resolveDateRange(startDate?: string, endDate?: string) {
   return { start, end };
 }
 
+function enumerateDays(startDay: string, endDay: string): string[] {
+  const days: string[] = [];
+  let current = parseIsoDate(startDay);
+  const end = parseIsoDate(endDay);
+  while (current.getTime() <= end.getTime()) {
+    days.push(getTodayIsoDate(current));
+    current = addDays(current, 1);
+  }
+  return days;
+}
+
+export function resolveWeekOverviewDateRange(startDate?: string, endDate?: string) {
+  const today = getTodayIsoDate();
+  let start = startDate;
+  let end = endDate;
+  const mode: 'custom' | 'last-7-days' = startDate || endDate ? 'custom' : 'last-7-days';
+
+  if (!start && !end) {
+    end = today;
+    start = getTodayIsoDate(addDays(parseIsoDate(end), -6));
+  } else if (start && !end) {
+    parseIsoDate(start);
+    end = getTodayIsoDate(addDays(parseIsoDate(start), 6));
+  } else if (!start && end) {
+    parseIsoDate(end);
+    start = getTodayIsoDate(addDays(parseIsoDate(end), -6));
+  }
+
+  const range = resolveDateRange(start, end);
+  const days = enumerateDays(range.start, range.end);
+  if (days.length !== 7) {
+    throw new Error('week-overview requires an inclusive 7-day range.');
+  }
+
+  return {
+    ...range,
+    mode,
+    days,
+  };
+}
+
 export async function fetchSingleDay<T>(
   accessToken: string,
   endpoint: OuraEndpoint,
@@ -705,10 +747,11 @@ export async function fetchMorningBaselineRecordsForRange(
   startDay: string,
   endDay: string
 ): Promise<OuraRecord[]> {
+  const sleepStartDay = getTodayIsoDate(addDays(parseIsoDate(startDay), -1));
   const [dailySleepResponse, dailyReadinessResponse, sleepResponse] = await Promise.all([
     fetchOuraData<DailySleep>(accessToken, 'daily_sleep', startDay, endDay),
     fetchOuraData<DailyReadiness>(accessToken, 'daily_readiness', startDay, endDay),
-    fetchOuraData<SleepPeriod>(accessToken, 'sleep', startDay, endDay),
+    fetchOuraData<SleepPeriod>(accessToken, 'sleep', sleepStartDay, endDay),
   ]);
 
   const dailySleepByDay = buildDailyMap(dailySleepResponse.data);
@@ -722,6 +765,7 @@ export async function fetchMorningBaselineRecordsForRange(
 
   return [...days]
     .sort()
+    .filter((day) => compareIsoDates(day, startDay) >= 0 && compareIsoDates(day, endDay) <= 0)
     .map((day) => {
       const dailySleep = dailySleepByDay.get(day);
       const dailyReadiness = dailyReadinessByDay.get(day);
@@ -1013,6 +1057,49 @@ export async function runMorningOptimized(
   printJson(await buildMorningOptimizedResult(deliveryMode));
 }
 
+export async function runWeekOverview(startDate?: string, endDate?: string): Promise<void> {
+  const range = resolveWeekOverviewDateRange(startDate, endDate);
+  const accessToken = await ensureValidAccessToken();
+  let state = readState();
+  let baseline = state.baseline;
+  let baselineStatus: 'ready' | 'missing' | 'stale' | 'refresh_failed' = baseline
+    ? 'ready'
+    : 'missing';
+
+  if (!baseline || isBaselineStale(baseline, new Date())) {
+    try {
+      const window = getAutomaticBaselineWindow(new Date());
+      const baselineRecords = await fetchMorningBaselineRecordsForRange(
+        accessToken,
+        window.startDay,
+        window.endDay
+      );
+      baseline = rebuildAutomaticBaseline(new Date(), baselineRecords, state.baselineConfig);
+      state = updateState({ baseline });
+      baseline = state.baseline;
+      baselineStatus = 'ready';
+    } catch {
+      baselineStatus = 'refresh_failed';
+    }
+  }
+
+  const records = await fetchMorningBaselineRecordsForRange(accessToken, range.start, range.end);
+  printJson(
+    buildWeekOverview({
+      startDay: range.start,
+      endDay: range.end,
+      timezone: state.schedule.timezone,
+      mode: range.mode,
+      days: range.days,
+      records,
+      thresholds: state.thresholds,
+      baselineConfig: state.baselineConfig,
+      baseline,
+      baselineStatus,
+    })
+  );
+}
+
 export async function confirmMorningOptimizedDelivery(
   deliveryKey: string,
   deliveryMode: OptimizedWatcherDeliveryMode = 'unusual-only'
@@ -1280,6 +1367,13 @@ export function createProgram(): Command {
         throw new Error(`Invalid optimized watcher delivery mode: ${options.deliveryMode}`);
       }
       await confirmMorningOptimizedDelivery(options.deliveryKey, options.deliveryMode);
+    });
+  summary
+    .command('week-overview')
+    .option('--start-date <startDate>', 'Start date in YYYY-MM-DD format')
+    .option('--end-date <endDate>', 'End date in YYYY-MM-DD format')
+    .action(async (options: { startDate?: string; endDate?: string }) => {
+      await runWeekOverview(options.startDate, options.endDate);
     });
   summary
     .command('evening')

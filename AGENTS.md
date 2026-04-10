@@ -17,6 +17,7 @@ runtime in the final architecture.
 ### External CLI Surface
 
 - `setup`
+- `auth login`
 - `auth status`
 - `auth refresh`
 - `fetch <endpoint> [--start-date YYYY-MM-DD] [--end-date YYYY-MM-DD]`
@@ -26,6 +27,7 @@ runtime in the final architecture.
 - `config set <key> <value>`
 - `summary morning`
 - `summary morning-optimized`
+- `summary week-overview`
 - `summary evening`
 
 ### Output Contract
@@ -47,6 +49,7 @@ runtime in the final architecture.
 - `src/baseline.ts` - baseline windows, statistics, staleness checks
 - `src/summaries.ts` - morning/evening recap assembly
 - `src/morning-optimized.ts` - optimized morning decision logic
+- `src/week-overview.ts` - seven-day optimized metric overview assembly
 - `src/output.ts` - JSON/text printing helpers
 
 Primary docs:

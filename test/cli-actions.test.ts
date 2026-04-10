@@ -142,6 +142,33 @@ describe('cli actions', () => {
     });
   });
 
+  test('resolves week overview date ranges as seven inclusive days', async () => {
+    const { resolveWeekOverviewDateRange } = await import('../src/cli');
+
+    expect(resolveWeekOverviewDateRange('2026-04-04', undefined)).toEqual({
+      start: '2026-04-04',
+      end: '2026-04-10',
+      mode: 'custom',
+      days: [
+        '2026-04-04',
+        '2026-04-05',
+        '2026-04-06',
+        '2026-04-07',
+        '2026-04-08',
+        '2026-04-09',
+        '2026-04-10',
+      ],
+    });
+    expect(resolveWeekOverviewDateRange(undefined, '2026-04-10')).toMatchObject({
+      start: '2026-04-04',
+      end: '2026-04-10',
+      mode: 'custom',
+    });
+    expect(() => resolveWeekOverviewDateRange('2026-04-04', '2026-04-09')).toThrow(
+      'week-overview requires an inclusive 7-day range.'
+    );
+  });
+
   test('runs fetch and prints raw json', async () => {
     ensureValidAccessToken.mockResolvedValue('token');
     fetchOuraData.mockResolvedValue({ data: [{ id: 'sleep' }] });
@@ -310,6 +337,46 @@ describe('cli actions', () => {
     expect(rebuildManualBaseline).toHaveBeenCalled();
     expect(updateState).toHaveBeenCalledWith({ baseline: { mode: 'rolling-21-days' } });
     expect(printJson).toHaveBeenCalledWith({ mode: 'rolling-21-days' });
+  });
+
+  test('fetches sleep from the previous day for range-based morning records', async () => {
+    fetchOuraData
+      .mockResolvedValueOnce({ data: [{ day: '2026-04-04', score: 81 }] })
+      .mockResolvedValueOnce({ data: [{ day: '2026-04-04', score: 84, temperature_deviation: 0 }] })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            day: '2026-04-03',
+            type: 'long_sleep',
+            average_hrv: 20,
+            lowest_heart_rate: 62,
+            total_sleep_duration: 26000,
+          },
+          {
+            day: '2026-04-04',
+            type: 'long_sleep',
+            average_hrv: 21,
+            lowest_heart_rate: 61,
+            total_sleep_duration: 28000,
+          },
+        ],
+      });
+
+    const { fetchMorningBaselineRecordsForRange } = await import('../src/cli');
+    const records = await fetchMorningBaselineRecordsForRange('token', '2026-04-04', '2026-04-10');
+
+    expect(fetchOuraData).toHaveBeenNthCalledWith(3, 'token', 'sleep', '2026-04-03', '2026-04-10');
+    expect(records).toEqual([
+      {
+        day: '2026-04-04',
+        sleepScore: 81,
+        readinessScore: 84,
+        temperatureDeviation: 0,
+        averageHrv: 21,
+        lowestHeartRate: 61,
+        totalSleepDuration: 28000,
+      },
+    ]);
   });
 
   test('prints morning summary text when requested', async () => {

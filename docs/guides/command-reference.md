@@ -115,6 +115,17 @@ In `daily-when-ready` mode, a ready day without an alert can still return `shoul
 `deliveryType: "morning-summary"` plus a nested `morningSummary` payload. `metricSignals` remains populated so the
 sender can display all six metrics and mark worse-than-baseline values.
 
+### `ouraclaw-cli summary week-overview [--start-date YYYY-MM-DD] [--end-date YYYY-MM-DD]`
+
+Builds a seven-day JSON overview using the same attention logic as `summary morning-optimized`. With no flags, the
+range is the last seven days including today. With only `--start-date`, the range is that date plus the next six days.
+With only `--end-date`, the range is that date and the previous six days. With both flags, the inclusive range must be
+exactly seven days.
+
+The result includes `period`, `baselineStatus`, `overview`, and `days`. Each day includes a concise `summaryLine`,
+`dataReady`, `shouldAlert`, `alertMetrics`, `alertReasons`, `skipReasons`, and all six optimized metrics with value,
+unit, baseline bounds when available, attention state, direction, severity, and reasons.
+
 ### `ouraclaw-cli summary morning-optimized-confirm --delivery-key <deliveryKey> [--delivery-mode unusual-only|daily-when-ready]`
 
 Confirms that an optimized morning alert was actually delivered. This stores same-day delivery state so later

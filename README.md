@@ -76,6 +76,7 @@ ouraclaw-cli auth status
 ouraclaw-cli baseline rebuild
 ouraclaw-cli summary morning --text
 ouraclaw-cli summary morning-optimized
+ouraclaw-cli summary week-overview
 ouraclaw-cli summary evening --text
 ```
 

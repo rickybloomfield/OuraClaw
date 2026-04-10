@@ -42,6 +42,7 @@ describe('cli', () => {
     const summarySubcommands = summaryCommand?.commands.map((command) => command.name()).sort();
 
     expect(summarySubcommands).toContain('morning-optimized-confirm');
+    expect(summarySubcommands).toContain('week-overview');
   });
 
   test('registers the auth management commands', () => {

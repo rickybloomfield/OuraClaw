@@ -230,6 +230,7 @@ export interface MetricSignal {
   direction: MetricSignalDirection;
   severity: MetricSignalSeverity;
   attention: boolean;
+  reasons: string[];
 }
 
 export interface MorningOptimizedToday {
@@ -277,4 +278,55 @@ export interface SummaryResult {
   message: string;
   missing: string[];
   payload: Record<string, unknown>;
+}
+
+export interface WeekOverviewMetric {
+  metric: BaselineMetricKey;
+  value: number | null;
+  unit: 'score' | 'celsius' | 'milliseconds' | 'bpm' | 'seconds';
+  attention: boolean;
+  severity: MetricSignalSeverity;
+  direction: MetricSignalDirection;
+  reasons: string[];
+  baselineMedian?: number;
+  baselineLow?: number;
+  baselineHigh?: number;
+}
+
+export interface WeekOverviewDay {
+  day: string;
+  dataReady: boolean;
+  shouldAlert: boolean;
+  summaryLine: string;
+  alertMetrics: BaselineMetricKey[];
+  alertReasons: string[];
+  skipReasons: string[];
+  metrics: WeekOverviewMetric[];
+}
+
+export interface WeekOverviewTopAttentionMetric {
+  metric: BaselineMetricKey;
+  count: number;
+  days: string[];
+}
+
+export interface WeekOverviewResult {
+  period: {
+    mode: 'last-7-days' | 'custom';
+    startDay: string;
+    endDay: string;
+    timezone: string;
+  };
+  baselineStatus: 'ready' | 'missing' | 'stale' | 'refresh_failed';
+  overview: {
+    readyDays: number;
+    attentionDays: number;
+    averageSleepScore: number | null;
+    averageReadinessScore: number | null;
+    averageTotalSleepDuration: number | null;
+    bestSleepDay: string | null;
+    lowestReadinessDay: string | null;
+    topAttentionMetrics: WeekOverviewTopAttentionMetric[];
+  };
+  days: WeekOverviewDay[];
 }
