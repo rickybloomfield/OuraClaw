@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
 - Added Dependabot configuration for grouped npm and GitHub Actions updates.
 - Added `auth login` for re-authenticating with Oura without changing thresholds, baseline tuning, or schedules.
 - Added `summary week-overview` for seven-day JSON summaries with optimized-metric attention details.
+- Added `link-cli.sh` and `unlink-cli.sh` helper scripts for npm-based local global linking from a source checkout.
 
 ### Changed
 
@@ -29,6 +30,8 @@ All notable changes to this project will be documented in this file.
   weekly recaps.
 - Clarified the README and core docs so the CLI is positioned as automation-first and usable without OpenClaw, while
   promoting `summary week-overview` as a first-class recap surface.
+- Expanded the README install section to explain when to use `link-cli.sh` / `unlink-cli.sh` instead of the published
+  global npm install.
 - Upgraded runtime and tooling dependencies in phases, including `commander` 14, TypeScript 6, ESLint 10.2, Vitest 4.1.3, and related type/lint packages.
 - Raised the documented and enforced Node.js engine floor to 20 to match the supported runtime and CI.
 - Updated the TypeScript compiler configuration from legacy Node resolution to `Node16`/`node16` so typecheck stays compatible with TypeScript 6.

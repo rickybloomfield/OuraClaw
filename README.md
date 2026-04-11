@@ -33,6 +33,34 @@ npm install
 npm run build
 ```
 
+If you want to use the cloned repository itself as the installed CLI instead of the published npm package, use the
+repo's development helpers:
+
+```bash
+./link-cli.sh
+# later, remove the global source link:
+./unlink-cli.sh
+```
+
+Use this path when you want to:
+
+- test local changes from a git clone as `ouraclaw-cli`
+- run an unpublished branch or worktree through the real global CLI entrypoint
+- develop the packaged OpenClaw skill against local CLI changes
+
+Use the normal `npm install -g @robertvii/ouraclaw-cli` path when you want the published release from npm.
+
+`./link-cli.sh` always runs `npm install`, `npm run build`, and `npm link`. It aborts if
+`@robertvii/ouraclaw-cli` is already installed globally as a normal npm package, so you do not accidentally shadow a
+published install with a source checkout. If that happens, uninstall the published package first:
+
+```bash
+npm uninstall -g @robertvii/ouraclaw-cli
+./link-cli.sh
+```
+
+When you are done using the source checkout as the global CLI, run `./unlink-cli.sh` to remove the npm link.
+
 ## Quick Start
 
 Before running setup, create an Oura application:
