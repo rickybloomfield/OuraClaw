@@ -13,6 +13,9 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- Clarified optimized watcher prompts and docs so `shouldSend: false` means absolute silence with no skip message, and
+  `deliveryType: "morning-summary"` is documented as the ready-day branch of the optimized watcher rather than a
+  separate schedule.
 - Changed `schedule setup` to ask for the delivery channel first and let known channels like Discord keep their saved
   target as a shortcut while still accepting a manually entered target override.
 - Reworked `summary morning-optimized` around attention signals: replaced `ordinary`, `breachedMetrics`, and generic

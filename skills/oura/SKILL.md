@@ -239,13 +239,15 @@ For a watcher configured to send every day once today's data is ready, run:
 
 Interpret the JSON result as the source of truth:
 
-- If `dataReady` is `false`, do not send a message.
-- If `shouldSend` is `false`, do not send a message.
+- If `dataReady` is `false`, send nothing and produce no output at all.
+- If `shouldSend` is `false`, send nothing and produce no output at all. Do not post a status message, explanation,
+  acknowledgment, or skip notice.
 - If `shouldSend` is `true` and `deliveryType` is `"optimized-alert"`, compose the final channel message from this
   template in the delivery language using `today`, `baselineStatus`, `alertMetrics`, `alertReasons`, and
   `metricSignals`.
 - If `shouldSend` is `true` and `deliveryType` is `"morning-summary"`, compose a daily ready message from this template
-  using `today`, `metricSignals`, and the nested `morningSummary` payload for extra context.
+  using `today`, `metricSignals`, and the nested `morningSummary` payload for extra context. Treat this as the
+  ready-day branch of the optimized watcher, not as a separate scheduler.
 - If `baselineStatus` is `"refresh_failed"`, trust the CLI decision anyway; it already fell back to fixed thresholds.
 - After the agent successfully delivers the alert, it must confirm delivery by running
   `ouraclaw-cli summary morning-optimized-confirm --delivery-key <deliveryKey>`.

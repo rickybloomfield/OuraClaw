@@ -114,7 +114,8 @@ Returns JSON for the optimized alerting flow. The result includes `dataReady`, `
 
 In `daily-when-ready` mode, a ready day without an alert can still return `shouldSend: true` with
 `deliveryType: "morning-summary"` plus a nested `morningSummary` payload. `metricSignals` remains populated so the
-sender can display all six metrics and mark worse-than-baseline values.
+sender can display all six metrics and mark worse-than-baseline values. This `morning-summary` value is still part of
+the optimized watcher contract, not a separate scheduling path.
 
 ### `ouraclaw-cli summary week-overview [--start-date YYYY-MM-DD] [--end-date YYYY-MM-DD]`
 

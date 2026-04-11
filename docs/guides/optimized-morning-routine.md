@@ -118,8 +118,11 @@ If `summary morning-optimized` returns `shouldSend: true`, it also returns a `de
 The intended sequence is:
 
 1. Agent runs `ouraclaw-cli summary morning-optimized`
-2. If `shouldSend: true`, agent sends the message according to `deliveryType`
-3. Only after successful delivery, agent runs:
+2. If `shouldSend: false`, agent sends nothing and produces no output at all.
+3. If `shouldSend: true`, agent sends the message according to `deliveryType`
+4. In `daily-when-ready` mode, `deliveryType: "morning-summary"` is still the ready-day branch of the optimized
+   watcher, not a separate schedule.
+5. Only after successful delivery, agent runs:
 
    `ouraclaw-cli summary morning-optimized-confirm --delivery-key <deliveryKey>`
 

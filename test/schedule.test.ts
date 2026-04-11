@@ -94,6 +94,7 @@ describe('schedule helpers', () => {
 
     expect(prompt).toContain('Morning Optimized Template');
     expect(prompt).toContain('summary morning-optimized-confirm --delivery-key <deliveryKey>');
+    expect(prompt).toContain('send nothing and produce no output at all');
     expect(prompt).toContain('channel "signal"');
     expect(prompt).toContain('target "+421"');
     expect(prompt).toContain('Delivery language: Slovak.');
@@ -108,7 +109,9 @@ describe('schedule helpers', () => {
     });
 
     expect(prompt).toContain('summary morning-optimized --delivery-mode daily-when-ready');
-    expect(prompt).toContain('use the nested morningSummary payload only as extra context');
+    expect(prompt).toContain('send nothing and produce no output at all');
+    expect(prompt).toContain('ready-day branch of this optimized watcher');
+    expect(prompt).toContain('Use the nested morningSummary payload only as extra context');
     expect(prompt).toContain(
       'summary morning-optimized-confirm --delivery-mode daily-when-ready --delivery-key <deliveryKey>'
     );

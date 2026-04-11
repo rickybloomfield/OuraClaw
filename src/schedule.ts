@@ -307,10 +307,12 @@ export function renderCronPrompt(
     deliveryMode === 'daily-when-ready'
       ? 'ouraclaw-cli summary morning-optimized-confirm --delivery-mode daily-when-ready --delivery-key <deliveryKey>'
       : 'ouraclaw-cli summary morning-optimized-confirm --delivery-key <deliveryKey>';
+  const noOutputInstruction =
+    'If dataReady is false or shouldSend is false, send nothing and produce no output at all. Do not post a status message, explanation, acknowledgment, or skip notice.';
   const modeInstruction =
     deliveryMode === 'daily-when-ready'
-      ? 'If dataReady is false or shouldSend is false, do nothing. If shouldSend is true, follow the Morning Optimized Template. For deliveryType "morning-summary", use the nested morningSummary payload only as extra context.'
-      : 'If dataReady is false or shouldSend is false, do nothing. If shouldSend is true, follow the Morning Optimized Template.';
+      ? `${noOutputInstruction} If shouldSend is true, follow the Morning Optimized Template. Treat deliveryType "morning-summary" as the ready-day branch of this optimized watcher, not as a separate scheduler. Use the nested morningSummary payload only as extra context.`
+      : `${noOutputInstruction} If shouldSend is true, follow the Morning Optimized Template.`;
   return `Read ${SKILL_PATH}. Run ${command}. ${modeInstruction} Confirm successful delivery with ${confirmCommand} only after the send succeeds. ${destination} ${language}`;
 }
 

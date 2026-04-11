@@ -50,14 +50,15 @@ you can keep the default `English` or choose another language such as `Slovak` w
 
 The optimized watcher runs `summary morning-optimized` repeatedly inside the configured window.
 
-- If `dataReady` is `false`, nothing is sent.
+- If `dataReady` is `false`, nothing is sent and the agent should produce no output at all.
 - In `Alert only when attention is needed` mode:
-  - `shouldSend: false` means nothing is sent.
+  - `shouldSend: false` means nothing is sent and no skip/diagnostic message should be posted.
   - `shouldSend: true` sends the optimized morning alert.
 - In `Send every day once today's Oura data is ready` mode:
-  - `shouldSend: false` still means nothing is sent because data is not ready.
+  - `shouldSend: false` still means nothing is sent because data is not ready, and no skip/diagnostic message should be posted.
   - `deliveryType: "optimized-alert"` sends the optimized morning alert when attention is needed.
-  - `deliveryType: "morning-summary"` sends a normal morning recap once today's data is ready without an alert.
+  - `deliveryType: "morning-summary"` sends a normal morning recap once today's data is ready without an alert. It is
+    the ready-day branch of the optimized watcher, not a separate scheduled delivery path.
 - After a successful send, the agent confirms delivery with
   `ouraclaw-cli summary morning-optimized-confirm --delivery-key <deliveryKey>`.
 
