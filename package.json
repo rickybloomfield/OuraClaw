@@ -1,6 +1,6 @@
 {
   "name": "@robertvii/ouraclaw-cli",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Standalone CLI for Oura automation with an optional OpenClaw skill",
   "main": "dist/index.js",
   "bin": {
