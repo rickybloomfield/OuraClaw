@@ -146,6 +146,16 @@ describe('morning', () => {
     expect(result.shouldSend).toBe(false);
     expect(result.alertMetrics).toEqual([]);
     expect(result.alertReasons).toEqual([]);
+    expect(result.metricSignals).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          metric: 'averageHrv',
+          direction: 'below_baseline',
+          severity: 'worse',
+          attention: false,
+        }),
+      ])
+    );
   });
 
   test('alerts when two supporting metrics are worse than baseline', () => {
@@ -165,6 +175,49 @@ describe('morning', () => {
     expect(result.alertMetrics).toEqual(expect.arrayContaining(['averageHrv', 'lowestHeartRate']));
     expect(result.alertReasons).toEqual(
       expect.arrayContaining(['baseline_hrv_low', 'baseline_lowest_heart_rate_high'])
+    );
+    expect(result.metricSignals).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          metric: 'averageHrv',
+          attention: true,
+        }),
+        expect.objectContaining({
+          metric: 'lowestHeartRate',
+          attention: true,
+        }),
+      ])
+    );
+  });
+
+  test('keeps supporting metrics non-actionable when a primary metric alone triggers the alert', () => {
+    const result = evaluateMorning({
+      today: {
+        ...readyToday,
+        averageHrv: 30,
+        totalSleepDuration: 26000,
+      },
+      thresholds: defaultThresholds(),
+      baselineConfig: defaultBaselineConfig(),
+      baselineStatus: 'ready',
+      baseline,
+    });
+
+    expect(result.shouldAlert).toBe(true);
+    expect(result.alertMetrics).toEqual(['totalSleepDuration']);
+    expect(result.metricSignals).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          metric: 'totalSleepDuration',
+          severity: 'worse',
+          attention: true,
+        }),
+        expect.objectContaining({
+          metric: 'averageHrv',
+          severity: 'worse',
+          attention: false,
+        }),
+      ])
     );
   });
 

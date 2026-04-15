@@ -106,7 +106,8 @@ schedule defaults into current CLI state without creating new jobs.
 
 Returns JSON for the canonical morning summary flow. The result includes `dataReady`, `shouldAlert`, `shouldSend`,
 optional `deliveryKey`, `deliveryMode`, `today`, optional `baseline`, `alertMetrics`, `alertReasons`, `skipReasons`,
-`metricSignals`, and optional `message` for sendable results.
+`metricSignals`, and optional `message` for sendable results. Within `metricSignals`, `attention: true` is reserved
+for actionable metrics that actually contributed to `alertMetrics`.
 
 In `daily-when-ready` mode, a ready day without an alert can still return `shouldSend: true` with a calm morning
 summary message. The result shape stays the same on both calm and attention days; there is no separate morning
@@ -122,8 +123,8 @@ exactly seven days.
 The result includes `period`, `baselineStatus`, `metricOrder`, `overview`, and `days`. Each day includes `weekday`,
 `dataReady`, `shouldAlert`, a concise English fallback `summaryLine`, `attentionMetrics`, `missingMetrics`, and compact
 `metrics` entries with `key`, raw `value`, `unit`, localized-rendering helper `displayValue`, and `attention`.
-`summaryLine` omits missing values and prefixes attention metrics with `⚠️`. For non-English summaries, render from
-`metricOrder`, `metrics`, and `attentionMetrics` instead of translating `summaryLine`.
+`summaryLine` omits missing values and prefixes only actionable attention metrics with `⚠️`. For non-English summaries,
+render from `metricOrder`, `metrics`, and `attentionMetrics` instead of translating `summaryLine`.
 
 ### `ouraclaw-cli summary morning-confirm --delivery-key <deliveryKey> [--delivery-mode unusual-only|daily-when-ready]`
 

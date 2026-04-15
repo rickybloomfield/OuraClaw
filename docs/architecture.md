@@ -57,9 +57,9 @@ percentile. A same-day value outside that band becomes a direction-aware metric 
 The morning summary routine combines fixed thresholds and baseline attention signals. Fixed-threshold failures alert
 immediately. For baseline signals, `sleepScore`, `readinessScore`, and `totalSleepDuration` are primary metrics: a
 worse value on any one of them alerts by itself. `temperatureDeviation`, `averageHrv`, and `lowestHeartRate` are
-supporting metrics: they are marked for attention when worse, but require the configured supporting metric alert count
-before they trigger an alert-oriented morning summary. Higher HRV and lower resting heart rate are treated as better
-baseline signals, not alert causes.
+supporting metrics: they can be worse than baseline without being marked as actionable attention. They are only marked
+for attention when they actually contribute to a real alert via the configured supporting metric alert count. Higher
+HRV and lower resting heart rate are treated as better baseline signals, not alert causes.
 
 Once an agent has successfully delivered a morning summary, it must confirm delivery back to the CLI with the returned
 `deliveryKey`. The CLI stores that confirmation in local state and suppresses duplicate same-day morning sends for the

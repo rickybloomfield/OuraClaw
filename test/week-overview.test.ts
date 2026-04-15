@@ -97,9 +97,9 @@ describe('week-overview', () => {
       'averageHrv',
     ]);
     expect(result.overview.readyDays).toBe(4);
-    expect(result.overview.attentionDays).toBe(2);
+    expect(result.overview.attentionDays).toBe(1);
     expect(result.overview.topAttentionMetrics).toEqual([
-      { metric: 'averageHrv', count: 2 },
+      { metric: 'averageHrv', count: 1 },
       { metric: 'lowestHeartRate', count: 1 },
     ]);
     expect(result.days[1]).toEqual(
@@ -138,7 +138,8 @@ describe('week-overview', () => {
         day: '2026-04-07',
         shouldAlert: false,
         summaryLine:
-          'Sleep 82 | Readiness 83 | Total 7h 13m | Temp +0.0C | Lowest HR 49 bpm | ⚠️ HRV 30 ms',
+          'Sleep 82 | Readiness 83 | Total 7h 13m | Temp +0.0C | Lowest HR 49 bpm | HRV 30 ms',
+        attentionMetrics: [],
       })
     );
     expect(result.days[6]).toEqual(

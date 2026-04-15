@@ -156,12 +156,22 @@ function buildMetricSignal(
     signal.reasons.push(...fixedReasons);
   }
 
-  signal.attention = signal.severity === 'worse';
   return { signal, baselineAlertReason };
 }
 
 function uniqueMetrics(metrics: BaselineMetricKey[]): BaselineMetricKey[] {
   return [...new Set(metrics)];
+}
+
+function applyActionableAttention(
+  metricSignals: MetricSignal[],
+  alertMetrics: BaselineMetricKey[]
+): MetricSignal[] {
+  const actionableMetrics = new Set(alertMetrics);
+  return metricSignals.map((signal) => ({
+    ...signal,
+    attention: actionableMetrics.has(signal.metric),
+  }));
 }
 
 export function evaluateMorning(input: MorningInput): MorningResult {
@@ -256,6 +266,7 @@ export function evaluateMorning(input: MorningInput): MorningResult {
       return primaryAlertMetrics.has(metric) || supportingBaselineTriggered;
     }),
   ];
+  const actionableMetricSignals = applyActionableAttention(metricSignals, alertMetrics);
 
   const shouldAlert = alertReasons.length > 0;
   const shouldSendCandidate = shouldAlert || deliveryMode === 'daily-when-ready';
@@ -271,7 +282,7 @@ export function evaluateMorning(input: MorningInput): MorningResult {
     alertMetrics,
     alertReasons,
     skipReasons: [],
-    metricSignals,
+    metricSignals: actionableMetricSignals,
   };
 
   if (shouldSendCandidate) {

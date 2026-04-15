@@ -72,8 +72,9 @@ Worse directions are:
 The primary metrics are `sleepScore`, `readinessScore`, and `totalSleepDuration`. One worse primary metric sets
 `shouldAlert: true`.
 
-The supporting metrics are `temperatureDeviation`, `averageHrv`, and `lowestHeartRate`. Supporting metrics are marked
-with `attention: true` when worse, but they set `shouldAlert: true` only when at least
+The supporting metrics are `temperatureDeviation`, `averageHrv`, and `lowestHeartRate`. Supporting metrics can still
+appear in `metricSignals` as worse-than-baseline, but they are marked with `attention: true` only when they actually
+contribute to `alertMetrics` on a real alert day. They set `shouldAlert: true` only when at least
 `baselineConfig.supportingMetricAlertCount` supporting metrics are worse. The default is `2`.
 
 Fixed-threshold alerts still set `shouldAlert: true` immediately.
@@ -102,11 +103,15 @@ firing before Oura has synced yet.
 - ready day with alert => `shouldAlert: true`, `alertMetrics` contains the alert-driving metrics, and
   `metricSignals` still includes all available metrics
 
+Within `metricSignals`, `attention: true` is reserved for actionable metrics that actually appear in `alertMetrics`.
+Supporting metrics can still show `severity: "worse"` on calm days without being marked as attention.
+
 ## Weekly Context
 
 The CLI also exposes `summary week-overview` as a separate seven-day JSON summary. It defaults to the last seven days
 including today and is shaped for brief localized recaps: one concise daily line, explicit attention markers, and
-structured per-metric fields for agent rendering.
+structured per-metric fields for agent rendering. Those attention markers follow the same actionable rule as
+`summary morning`, so a supporting outlier does not get `⚠️` unless it helped drive the alert.
 
 That weekly command is independent of the morning summary decision, but it is the intended input for future Monday
 messages that combine the normal morning check with a quick look back at the previous week.

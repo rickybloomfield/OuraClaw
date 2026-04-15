@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- Restricted `metricSignals[].attention`, `attentionMetrics`, and weekly `⚠️` markers to metrics that actually
+  contributed to `alertMetrics`, so supporting outliers remain visible without being treated as actionable attention.
+
 ## [0.4.0] - 2026-04-13
 
 ### Added
