@@ -57,6 +57,7 @@ Use this skill when the user wants Oura Ring data, a morning summary, an evening
 - Evening recap data: `ouraclaw-cli summary evening`
 - Morning delivery confirmation: `ouraclaw-cli summary morning-confirm --delivery-key <deliveryKey>`
 - Seven-day overview: `ouraclaw-cli summary week-overview`
+- Seven-day overview text preview: `ouraclaw-cli summary week-overview --text`
 
 ## Date Rules
 
@@ -249,7 +250,8 @@ When delivering a seven-day overview, run:
 
 `ouraclaw-cli summary week-overview`
 
-Use the returned JSON fields `period`, `metricOrder`, `overview`, and `days` as the source data.
+Use the returned JSON fields `period`, `metricOrder`, `overview`, and `days` as the source data. For local inspection,
+`ouraclaw-cli summary week-overview --text` prints a compact English preview of the same recap shape.
 
 Interpret the range as completed calendar days. By default it excludes today, and each row already carries the
 next-morning Oura bundle shifted back onto the completed day being reviewed.

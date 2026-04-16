@@ -463,6 +463,87 @@ describe('cli actions', () => {
     ]);
   });
 
+  test('prints compact week overview text when requested', async () => {
+    ensureValidAccessToken.mockResolvedValue('token');
+    isBaselineStale.mockReturnValue(false);
+    readState.mockReturnValue({
+      schemaVersion: 1,
+      auth: {},
+      thresholds: { sleepScoreMin: 75, readinessScoreMin: 75, temperatureDeviationMax: 0.1 },
+      baselineConfig: { lowerPercentile: 25, supportingMetricAlertCount: 2 },
+      baseline: {
+        updatedAt: '2026-04-10T00:00:00.000Z',
+        mode: 'calendar-weeks',
+        sourceStartDay: '2026-03-16',
+        sourceEndDay: '2026-04-05',
+        weeks: ['2026-W12'],
+        metrics: {},
+      },
+      schedule: { timezone: 'Europe/Bratislava' },
+      deliveries: {},
+    });
+    fetchOuraData
+      .mockResolvedValueOnce({ data: [{ day: '2026-04-14', score: 81 }] })
+      .mockResolvedValueOnce({
+        data: [{ day: '2026-04-14', score: 84, temperature_deviation: 0.2 }],
+      })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            day: '2026-04-13',
+            type: 'long_sleep',
+            average_hrv: 20,
+            lowest_heart_rate: 62,
+            total_sleep_duration: 26000,
+          },
+          {
+            day: '2026-04-14',
+            type: 'long_sleep',
+            average_hrv: 21,
+            lowest_heart_rate: 61,
+            total_sleep_duration: 28000,
+          },
+        ],
+      });
+    evaluateMorning
+      .mockReturnValueOnce({
+        dataReady: true,
+        shouldAlert: true,
+        metricSignals: [
+          { metric: 'sleepScore', value: 81, attention: false },
+          { metric: 'readinessScore', value: 84, attention: false },
+          { metric: 'totalSleepDuration', value: 28000, attention: false },
+          { metric: 'temperatureDeviation', value: 0.2, attention: true },
+          { metric: 'lowestHeartRate', value: 61, attention: false },
+          { metric: 'averageHrv', value: 21, attention: false },
+        ],
+      })
+      .mockReturnValue({
+        dataReady: false,
+        shouldAlert: false,
+        metricSignals: [],
+      });
+
+    const { runWeekOverview } = await import('../src/cli');
+    await runWeekOverview(true, '2026-04-13', '2026-04-19');
+
+    expect(printText).toHaveBeenCalledWith(
+      [
+        'Your Oura overview for Apr 13 - Apr 19.',
+        '',
+        'Mon: Sleep 81 | Readiness 84 | Total 7h 47m | ⚠️ Temp +0.2C | Lowest HR 61 bpm | HRV 21 ms',
+        'Tue: data not ready',
+        'Wed: data not ready',
+        'Thu: data not ready',
+        'Fri: data not ready',
+        'Sat: data not ready',
+        'Sun: data not ready',
+        '',
+        'Main pattern: temperature was the most repeated attention signal this week.',
+      ].join('\n')
+    );
+  });
+
   test('prints morning summary text when requested', async () => {
     ensureValidAccessToken.mockResolvedValue('token');
     fetchOuraData.mockResolvedValue({ data: [] });

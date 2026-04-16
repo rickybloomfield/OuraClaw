@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file.
 - Changed `summary week-overview` to default to the last seven completed calendar days, excluding today, and to shift
   the morning-style metric bundle back one day so Monday weekly recaps can include Sunday-night sleep on the Sunday
   row.
+- Added `summary week-overview --text` for a compact English weekly recap preview in the local CLI.
 
 ## [0.4.0] - 2026-04-13
 

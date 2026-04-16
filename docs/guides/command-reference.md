@@ -113,7 +113,7 @@ In `daily-when-ready` mode, a ready day without an alert can still return `shoul
 summary message. The result shape stays the same on both calm and attention days; there is no separate morning
 delivery type branch.
 
-### `ouraclaw-cli summary week-overview [--start-date YYYY-MM-DD] [--end-date YYYY-MM-DD]`
+### `ouraclaw-cli summary week-overview [--start-date YYYY-MM-DD] [--end-date YYYY-MM-DD] [--text]`
 
 Builds a seven-day JSON overview using the same attention logic as `summary morning`. With no flags, the
 range is the last seven completed calendar days, excluding today. With only `--start-date`, the range is that date
@@ -130,6 +130,9 @@ The result includes `period`, `baselineStatus`, `metricOrder`, `overview`, and `
 `metrics` entries with `key`, raw `value`, `unit`, localized-rendering helper `displayValue`, and `attention`.
 `summaryLine` omits missing values and prefixes only actionable attention metrics with `⚠️`. For non-English summaries,
 render from `metricOrder`, `metrics`, and `attentionMetrics` instead of translating `summaryLine`.
+
+With `--text`, the command prints a compact English recap intended for local inspection: one header line, one line per
+day, and an optional closing pattern note.
 
 ### `ouraclaw-cli summary morning-confirm --delivery-key <deliveryKey> [--delivery-mode unusual-only|daily-when-ready]`
 

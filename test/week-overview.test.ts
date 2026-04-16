@@ -3,7 +3,7 @@ import { describe, expect, test } from 'vitest';
 import { defaultBaselineConfig } from '../src/baseline';
 import { defaultThresholds } from '../src/thresholds';
 import { BaselineSnapshot } from '../src/types';
-import { buildWeekOverview } from '../src/week-overview';
+import { buildWeekOverview, buildWeekOverviewText } from '../src/week-overview';
 
 const baseline: BaselineSnapshot = {
   mode: 'calendar-weeks',
@@ -157,6 +157,64 @@ describe('week-overview', () => {
         ],
         metrics: [],
       })
+    );
+  });
+
+  test('renders compact english text output', () => {
+    const result = buildWeekOverview({
+      startDay: '2026-04-13',
+      endDay: '2026-04-19',
+      timezone: 'Europe/Bratislava',
+      mode: 'last-7-days',
+      days: [
+        '2026-04-13',
+        '2026-04-14',
+        '2026-04-15',
+        '2026-04-16',
+        '2026-04-17',
+        '2026-04-18',
+        '2026-04-19',
+      ],
+      records: [
+        {
+          day: '2026-04-13',
+          sleepScore: 86,
+          readinessScore: 85,
+          temperatureDeviation: 0,
+          averageHrv: 41,
+          lowestHeartRate: 49,
+          totalSleepDuration: 28000,
+        },
+        {
+          day: '2026-04-14',
+          sleepScore: 81,
+          readinessScore: 82,
+          temperatureDeviation: 0,
+          averageHrv: 30,
+          lowestHeartRate: 55,
+          totalSleepDuration: 27000,
+        },
+      ],
+      thresholds: defaultThresholds(),
+      baselineConfig: defaultBaselineConfig(),
+      baseline,
+      baselineStatus: 'ready',
+    });
+
+    expect(buildWeekOverviewText(result)).toBe(
+      [
+        'Your Oura overview for Apr 13 - Apr 19.',
+        '',
+        'Mon: Sleep 86 | Readiness 85 | Total 7h 47m | Temp +0.0C | Lowest HR 49 bpm | HRV 41 ms',
+        'Tue: Sleep 81 | Readiness 82 | Total 7h 30m | Temp +0.0C | ⚠️ Lowest HR 55 bpm | ⚠️ HRV 30 ms',
+        'Wed: data not ready',
+        'Thu: data not ready',
+        'Fri: data not ready',
+        'Sat: data not ready',
+        'Sun: data not ready',
+        '',
+        'Main pattern: HRV was the most repeated attention signal this week.',
+      ].join('\n')
     );
   });
 });
