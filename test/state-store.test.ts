@@ -23,6 +23,9 @@ describe('state-store', () => {
     expect(state.schedule.deliveryLanguage).toBe('English');
     expect(state.schedule.morningDeliveryMode).toBe('unusual-only');
     expect(state.schedule.morningIntervalMinutes).toBe(60);
+    expect(state.schedule.weeklyOverviewEnabled).toBe(false);
+    expect(state.schedule.weeklyOverviewDay).toBe('monday');
+    expect(state.schedule.weeklyOverviewTime).toBe('13:00');
     expect(state.deliveries).toEqual({});
     expect(state.auth.accessToken).toBeUndefined();
   });
@@ -96,6 +99,9 @@ describe('state-store', () => {
         morningIntervalMinutes: 60,
         eveningEnabled: false,
         eveningTime: '21:00',
+        weeklyOverviewEnabled: false,
+        weeklyOverviewDay: 'monday',
+        weeklyOverviewTime: '13:00',
       },
       deliveries: {},
     });
@@ -114,6 +120,10 @@ describe('state-store', () => {
         deliveryLanguage: 'Slovak',
         morningDeliveryMode: 'daily-when-ready',
         morningCronJobIds: ['job-1', 'job-2'],
+        weeklyOverviewEnabled: true,
+        weeklyOverviewDay: 'sunday',
+        weeklyOverviewTime: '18:30',
+        weeklyOverviewCronJobId: 'weekly-1',
       },
     });
 
@@ -124,6 +134,10 @@ describe('state-store', () => {
     expect(next.schedule.deliveryLanguage).toBe('Slovak');
     expect(next.schedule.morningDeliveryMode).toBe('daily-when-ready');
     expect(next.schedule.morningCronJobIds).toEqual(['job-1', 'job-2']);
+    expect(next.schedule.weeklyOverviewEnabled).toBe(true);
+    expect(next.schedule.weeklyOverviewDay).toBe('sunday');
+    expect(next.schedule.weeklyOverviewTime).toBe('18:30');
+    expect(next.schedule.weeklyOverviewCronJobId).toBe('weekly-1');
 
     const stateFile = path.join(home, 'ouraclaw-cli.json');
     const dirMode = fs.statSync(home).mode & 0o777;

@@ -3,7 +3,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { getLegacyConfigFilePath } from './config';
-import { LegacyOuraConfig, OptimizedWatcherDeliveryMode, ScheduleConfig } from './types';
+import {
+  LegacyOuraConfig,
+  OptimizedWatcherDeliveryMode,
+  ScheduleConfig,
+  WeeklyOverviewDayOfWeek,
+} from './types';
 
 export interface OpenClawCronJob {
   id: string;
@@ -35,7 +40,7 @@ export interface ScheduleStatusResult {
 }
 
 interface ManagedCronJobDefinition {
-  kind: 'morning' | 'evening';
+  kind: 'morning' | 'evening' | 'week-overview';
   name: string;
   cron: string;
   message: string;
@@ -44,6 +49,7 @@ interface ManagedCronJobDefinition {
 const MANAGED_JOB_NAMES = {
   morningPrefix: 'ouraclaw-cli Morning Summary',
   evening: 'ouraclaw-cli Evening Summary',
+  weeklyOverview: 'ouraclaw-cli Weekly Overview',
 } as const;
 
 const LEGACY_JOB_NAMES = [
@@ -178,6 +184,21 @@ function timeToDailyCron(value: string): string {
   return `${minutes} ${hours} * * *`;
 }
 
+const WEEKLY_CRON_DAY_NUMBERS: Record<WeeklyOverviewDayOfWeek, number> = {
+  sunday: 0,
+  monday: 1,
+  tuesday: 2,
+  wednesday: 3,
+  thursday: 4,
+  friday: 5,
+  saturday: 6,
+};
+
+function timeToWeeklyCron(value: string, day: WeeklyOverviewDayOfWeek): string {
+  const { hours, minutes } = parseTimeOfDay(value);
+  return `${minutes} ${hours} * * ${WEEKLY_CRON_DAY_NUMBERS[day]}`;
+}
+
 function joinSortedNumbers(values: number[]): string {
   return [...values].sort((left, right) => left - right).join(',');
 }
@@ -225,7 +246,11 @@ function isManagedMorningJobName(name: string): boolean {
 }
 
 export function isManagedScheduleJob(job: Pick<OpenClawCronJob, 'name'>): boolean {
-  return job.name === MANAGED_JOB_NAMES.evening || isManagedMorningJobName(job.name);
+  return (
+    job.name === MANAGED_JOB_NAMES.evening ||
+    job.name === MANAGED_JOB_NAMES.weeklyOverview ||
+    isManagedMorningJobName(job.name)
+  );
 }
 
 export function findLegacyOuraClawJobs(jobs: OpenClawCronJob[]): OpenClawCronJob[] {
@@ -279,7 +304,7 @@ export function inspectLegacySchedule(jobs = listOpenClawCronJobs()): LegacySche
 }
 
 export function renderCronPrompt(
-  type: 'morning' | 'evening',
+  type: 'morning' | 'evening' | 'week-overview',
   schedule: Pick<ScheduleConfig, 'channel' | 'target' | 'deliveryLanguage' | 'morningDeliveryMode'>
 ): string {
   const destination = `Deliver directly to channel "${schedule.channel ?? 'default'}" and target "${schedule.target ?? 'default'}".`;
@@ -287,6 +312,9 @@ export function renderCronPrompt(
 
   if (type === 'evening') {
     return `Read ${SKILL_PATH} and follow the Evening Summary Template. ${destination} ${language}`;
+  }
+  if (type === 'week-overview') {
+    return `Read ${SKILL_PATH} and follow the Week Overview Template. ${destination} ${language}`;
   }
 
   const deliveryMode: OptimizedWatcherDeliveryMode = schedule.morningDeliveryMode ?? 'unusual-only';
@@ -329,6 +357,14 @@ function buildManagedCronJobs(schedule: ScheduleConfig): ManagedCronJobDefinitio
       name: MANAGED_JOB_NAMES.evening,
       cron: timeToDailyCron(schedule.eveningTime),
       message: renderCronPrompt('evening', schedule),
+    });
+  }
+  if (schedule.weeklyOverviewEnabled) {
+    jobs.push({
+      kind: 'week-overview',
+      name: MANAGED_JOB_NAMES.weeklyOverview,
+      cron: timeToWeeklyCron(schedule.weeklyOverviewTime, schedule.weeklyOverviewDay),
+      message: renderCronPrompt('week-overview', schedule),
     });
   }
   return jobs;
@@ -375,12 +411,16 @@ function createCronJob(job: ManagedCronJobDefinition, timezone: string): string 
 }
 
 export function removeManagedScheduleJobs(
-  schedule: Pick<ScheduleConfig, 'morningCronJobIds' | 'eveningCronJobId'>
+  schedule: Pick<
+    ScheduleConfig,
+    'morningCronJobIds' | 'eveningCronJobId' | 'weeklyOverviewCronJobId'
+  >
 ): { removedIds: string[] } {
   const jobs = listOpenClawCronJobs();
   const ids = new Set<string>([
     ...(schedule.morningCronJobIds ?? []),
     schedule.eveningCronJobId ?? '',
+    schedule.weeklyOverviewCronJobId ?? '',
     ...findManagedScheduleJobs(jobs).map((job) => job.id),
   ]);
 
@@ -405,22 +445,26 @@ export function createOrReplaceScheduleJobs(schedule: ScheduleConfig): ScheduleC
   const jobIds = {
     morningCronJobIds: [] as string[],
     eveningCronJobId: undefined as string | undefined,
+    weeklyOverviewCronJobId: undefined as string | undefined,
   };
 
   for (const job of buildManagedCronJobs(schedule)) {
     const id = createCronJob(job, schedule.timezone);
     if (job.kind === 'morning') {
       jobIds.morningCronJobIds.push(id);
-    } else {
+    } else if (job.kind === 'evening') {
       jobIds.eveningCronJobId = id;
+    } else {
+      jobIds.weeklyOverviewCronJobId = id;
     }
   }
 
   return {
     ...schedule,
-    enabled: schedule.morningEnabled || schedule.eveningEnabled,
+    enabled: schedule.morningEnabled || schedule.eveningEnabled || schedule.weeklyOverviewEnabled,
     morningCronJobIds: jobIds.morningCronJobIds,
     eveningCronJobId: jobIds.eveningCronJobId,
+    weeklyOverviewCronJobId: jobIds.weeklyOverviewCronJobId,
   };
 }
 
@@ -458,6 +502,7 @@ export function getLegacyJobNames(): string[] {
 export function getManagedJobNames(): {
   morningPrefix: string;
   evening: string;
+  weeklyOverview: string;
 } {
   return { ...MANAGED_JOB_NAMES };
 }

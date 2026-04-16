@@ -769,6 +769,10 @@ describe('cli actions', () => {
       morningCronJobIds: ['job-morning-1', 'job-morning-2'],
       eveningEnabled: false,
       eveningTime: '21:00',
+      weeklyOverviewEnabled: true,
+      weeklyOverviewDay: 'monday',
+      weeklyOverviewTime: '13:00',
+      weeklyOverviewCronJobId: 'job-weekly-1',
     };
     readState.mockReturnValue({
       schemaVersion: 1,
@@ -784,6 +788,7 @@ describe('cli actions', () => {
       existingManagedJobs: [
         { id: 'job-morning-1', name: 'ouraclaw-cli Morning Summary #1' },
         { id: 'job-morning-2', name: 'ouraclaw-cli Morning Summary #2' },
+        { id: 'job-weekly-1', name: 'ouraclaw-cli Weekly Overview' },
       ],
       existingLegacyJobs: [{ id: 'legacy-1', name: 'OuraClaw Morning Summary' }],
     });
@@ -809,6 +814,13 @@ describe('cli actions', () => {
           enabled: false,
           storedId: null,
           exists: false,
+        },
+        weekOverview: {
+          enabled: true,
+          day: 'monday',
+          time: '13:00',
+          storedId: 'job-weekly-1',
+          exists: true,
         },
       },
       legacyJobs: [{ id: 'legacy-1', name: 'OuraClaw Morning Summary' }],
@@ -836,11 +848,15 @@ describe('cli actions', () => {
         eveningEnabled: true,
         eveningTime: '21:00',
         eveningCronJobId: 'evening-id',
+        weeklyOverviewEnabled: true,
+        weeklyOverviewDay: 'monday',
+        weeklyOverviewTime: '13:00',
+        weeklyOverviewCronJobId: 'weekly-id',
       },
       deliveries: {},
     });
     removeManagedScheduleJobs.mockReturnValue({
-      removedIds: ['morning-1', 'morning-2', 'evening-id'],
+      removedIds: ['morning-1', 'morning-2', 'evening-id', 'weekly-id'],
     });
 
     const { runScheduleDisable } = await import('../src/cli');
@@ -850,6 +866,7 @@ describe('cli actions', () => {
       expect.objectContaining({
         morningCronJobIds: ['morning-1', 'morning-2'],
         eveningCronJobId: 'evening-id',
+        weeklyOverviewCronJobId: 'weekly-id',
       })
     );
     expect(updateState).toHaveBeenCalledWith({
@@ -857,9 +874,11 @@ describe('cli actions', () => {
         enabled: false,
         morningEnabled: false,
         eveningEnabled: false,
+        weeklyOverviewEnabled: false,
         morningDeliveryMode: 'unusual-only',
         morningCronJobIds: [],
         eveningCronJobId: undefined,
+        weeklyOverviewCronJobId: undefined,
         channel: 'signal',
       }),
     });
@@ -882,6 +901,9 @@ describe('cli actions', () => {
         morningIntervalMinutes: 60,
         eveningEnabled: false,
         eveningTime: '21:00',
+        weeklyOverviewEnabled: false,
+        weeklyOverviewDay: 'monday',
+        weeklyOverviewTime: '13:00',
       },
       deliveries: {},
     });
@@ -899,6 +921,7 @@ describe('cli actions', () => {
         morningEnabled: true,
         morningStart: '07:30',
         morningEnd: '07:30',
+        weeklyOverviewEnabled: false,
       },
       legacyJobs: [{ id: 'legacy-1', name: 'OuraClaw Morning Summary' }],
     });
@@ -940,10 +963,12 @@ describe('cli actions', () => {
         morningEnabled: true,
         morningStart: '07:30',
         morningEnd: '07:30',
+        weeklyOverviewEnabled: false,
       },
       schedule: expect.objectContaining({
         channel: 'signal',
         target: '+421',
+        weeklyOverviewEnabled: false,
       }),
     });
   });
@@ -967,6 +992,9 @@ describe('cli actions', () => {
         morningIntervalMinutes: 60,
         eveningEnabled: false,
         eveningTime: '21:00',
+        weeklyOverviewEnabled: false,
+        weeklyOverviewDay: 'monday',
+        weeklyOverviewTime: '13:00',
       },
       deliveries: {},
     });
@@ -979,6 +1007,7 @@ describe('cli actions', () => {
       .mockResolvedValueOnce('2')
       .mockResolvedValueOnce('2')
       .mockResolvedValueOnce('1482716547729326262')
+      .mockResolvedValueOnce('')
       .mockResolvedValueOnce('')
       .mockResolvedValueOnce('')
       .mockResolvedValueOnce('')

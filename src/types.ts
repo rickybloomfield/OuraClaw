@@ -122,6 +122,14 @@ export interface BaselineConfig {
 }
 
 export type OptimizedWatcherDeliveryMode = 'unusual-only' | 'daily-when-ready';
+export type WeeklyOverviewDayOfWeek =
+  | 'monday'
+  | 'tuesday'
+  | 'wednesday'
+  | 'thursday'
+  | 'friday'
+  | 'saturday'
+  | 'sunday';
 
 export interface BaselineMetricSnapshot {
   median: number;
@@ -143,8 +151,12 @@ export interface ScheduleConfig {
   morningIntervalMinutes: number;
   eveningEnabled: boolean;
   eveningTime: string;
+  weeklyOverviewEnabled: boolean;
+  weeklyOverviewDay: WeeklyOverviewDayOfWeek;
+  weeklyOverviewTime: string;
   morningCronJobIds?: string[];
   eveningCronJobId?: string;
+  weeklyOverviewCronJobId?: string;
 }
 
 export interface BaselineSnapshot {

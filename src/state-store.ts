@@ -42,6 +42,9 @@ export function defaultState(): OuraCliState {
       morningIntervalMinutes: DEFAULT_SCHEDULE_CONFIG.morningIntervalMinutes,
       eveningEnabled: DEFAULT_SCHEDULE_CONFIG.eveningEnabled,
       eveningTime: DEFAULT_SCHEDULE_CONFIG.eveningTime,
+      weeklyOverviewEnabled: DEFAULT_SCHEDULE_CONFIG.weeklyOverviewEnabled,
+      weeklyOverviewDay: DEFAULT_SCHEDULE_CONFIG.weeklyOverviewDay,
+      weeklyOverviewTime: DEFAULT_SCHEDULE_CONFIG.weeklyOverviewTime,
     },
     deliveries: {},
   };

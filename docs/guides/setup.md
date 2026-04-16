@@ -63,6 +63,7 @@ That walkthrough can configure:
 
 - a morning summary watcher
 - a fixed evening recap
+- a fixed weekly overview
 
 For full scheduling details, see the [Scheduling guide](scheduling.md).
 

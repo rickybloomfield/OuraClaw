@@ -58,6 +58,7 @@ import {
   OuraTokenResponse,
   OptimizedWatcherDeliveryMode,
   ScheduleConfig,
+  WeeklyOverviewDayOfWeek,
   SleepPeriod,
 } from './types';
 
@@ -148,6 +149,20 @@ function getSuggestedTimezone(): string {
 
 function isOptimizedWatcherDeliveryMode(value: string): value is OptimizedWatcherDeliveryMode {
   return value === 'unusual-only' || value === 'daily-when-ready';
+}
+
+const WEEKLY_OVERVIEW_DAY_CHOICES: WeeklyOverviewDayOfWeek[] = [
+  'monday',
+  'tuesday',
+  'wednesday',
+  'thursday',
+  'friday',
+  'saturday',
+  'sunday',
+];
+
+function formatWeeklyOverviewDay(day: WeeklyOverviewDayOfWeek): string {
+  return `${day.slice(0, 1).toUpperCase()}${day.slice(1)}`;
 }
 
 function createPromptInterface() {
@@ -309,6 +324,15 @@ function mergeScheduleDefaults(
       current.eveningTime !== DEFAULT_SCHEDULE_CONFIG.eveningTime
         ? current.eveningTime
         : (defaults.eveningTime ?? current.eveningTime),
+    weeklyOverviewEnabled: current.weeklyOverviewEnabled || defaults.weeklyOverviewEnabled || false,
+    weeklyOverviewDay:
+      current.weeklyOverviewDay !== DEFAULT_SCHEDULE_CONFIG.weeklyOverviewDay
+        ? current.weeklyOverviewDay
+        : (defaults.weeklyOverviewDay ?? current.weeklyOverviewDay),
+    weeklyOverviewTime:
+      current.weeklyOverviewTime !== DEFAULT_SCHEDULE_CONFIG.weeklyOverviewTime
+        ? current.weeklyOverviewTime
+        : (defaults.weeklyOverviewTime ?? current.weeklyOverviewTime),
   };
 }
 
@@ -369,6 +393,23 @@ async function promptMorningDeliveryMode(
   return choice === "Send every day once today's Oura data is ready"
     ? 'daily-when-ready'
     : 'unusual-only';
+}
+
+async function promptWeeklyOverviewDay(
+  rl: readline.Interface,
+  defaultValue: WeeklyOverviewDayOfWeek
+): Promise<WeeklyOverviewDayOfWeek> {
+  const defaultIndex = WEEKLY_OVERVIEW_DAY_CHOICES.indexOf(defaultValue);
+  const choice = await select(
+    rl,
+    'Weekly overview delivery day:',
+    WEEKLY_OVERVIEW_DAY_CHOICES.map(formatWeeklyOverviewDay),
+    defaultIndex >= 0 ? defaultIndex : 0
+  );
+
+  return (
+    WEEKLY_OVERVIEW_DAY_CHOICES.find((day) => formatWeeklyOverviewDay(day) === choice) ?? 'monday'
+  );
 }
 
 async function promptChannelTarget(
@@ -528,6 +569,17 @@ async function runScheduleSetupFlow(
   const eveningTime = eveningEnabled
     ? await promptTimeValue(rl, 'Evening recap time', currentSchedule.eveningTime)
     : currentSchedule.eveningTime;
+  const weeklyOverviewEnabled = await confirm(
+    rl,
+    'Enable weekly overview',
+    currentSchedule.weeklyOverviewEnabled
+  );
+  const weeklyOverviewDay = weeklyOverviewEnabled
+    ? await promptWeeklyOverviewDay(rl, currentSchedule.weeklyOverviewDay)
+    : currentSchedule.weeklyOverviewDay;
+  const weeklyOverviewTime = weeklyOverviewEnabled
+    ? await promptTimeValue(rl, 'Weekly overview time', currentSchedule.weeklyOverviewTime)
+    : currentSchedule.weeklyOverviewTime;
 
   let morningStart = currentSchedule.morningStart;
   let morningEnd = currentSchedule.morningEnd;
@@ -559,7 +611,7 @@ async function runScheduleSetupFlow(
 
   const nextSchedule = createOrReplaceScheduleJobs({
     ...currentSchedule,
-    enabled: morningEnabled || eveningEnabled,
+    enabled: morningEnabled || eveningEnabled || weeklyOverviewEnabled,
     channel: destination.channel,
     target: destination.target,
     deliveryLanguage,
@@ -571,6 +623,9 @@ async function runScheduleSetupFlow(
     morningIntervalMinutes,
     eveningEnabled,
     eveningTime,
+    weeklyOverviewEnabled,
+    weeklyOverviewDay,
+    weeklyOverviewTime,
   });
   updateState({ schedule: nextSchedule });
 
@@ -1224,6 +1279,15 @@ export function runScheduleStatus(): void {
           (job) => job.id === status.configured.eveningCronJobId
         ),
       },
+      weekOverview: {
+        enabled: status.configured.weeklyOverviewEnabled,
+        day: status.configured.weeklyOverviewDay,
+        time: status.configured.weeklyOverviewTime,
+        storedId: status.configured.weeklyOverviewCronJobId ?? null,
+        exists: status.existingManagedJobs.some(
+          (job) => job.id === status.configured.weeklyOverviewCronJobId
+        ),
+      },
     },
     legacyJobs: status.existingLegacyJobs.map((job) => ({
       id: job.id,
@@ -1240,9 +1304,11 @@ export function runScheduleDisable(): void {
     enabled: false,
     morningEnabled: false,
     eveningEnabled: false,
+    weeklyOverviewEnabled: false,
     morningDeliveryMode: state.schedule.morningDeliveryMode,
     morningCronJobIds: [],
     eveningCronJobId: undefined,
+    weeklyOverviewCronJobId: undefined,
   };
   updateState({ schedule: nextSchedule });
   printJson({

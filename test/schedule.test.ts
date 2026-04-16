@@ -114,6 +114,19 @@ describe('schedule helpers', () => {
     );
   });
 
+  test('renders weekly overview prompts with the weekly template instructions', () => {
+    const prompt = renderCronPrompt('week-overview', {
+      channel: 'signal',
+      target: '+421',
+      deliveryLanguage: 'English',
+      morningDeliveryMode: 'unusual-only',
+    });
+
+    expect(prompt).toContain('Week Overview Template');
+    expect(prompt).toContain('channel "signal"');
+    expect(prompt).toContain('target "+421"');
+  });
+
   test('detects whether openclaw is available', () => {
     execFileSync.mockReturnValue('OpenClaw 2026.3.11');
     expect(isOpenClawAvailable()).toBe(true);
@@ -231,6 +244,9 @@ describe('schedule helpers', () => {
       morningIntervalMinutes: 30,
       eveningEnabled: false,
       eveningTime: '21:00',
+      weeklyOverviewEnabled: true,
+      weeklyOverviewDay: 'monday',
+      weeklyOverviewTime: '13:00',
       morningCronJobIds: ['old-morning', 'old-optimized'],
     });
 
@@ -243,12 +259,26 @@ describe('schedule helpers', () => {
       expect.arrayContaining(['cron', 'add', '--name', 'ouraclaw-cli Morning Summary #1']),
       expect.objectContaining({ encoding: 'utf8', timeout: 10000 })
     );
+    expect(result.weeklyOverviewCronJobId).toBe('ouraclaw-cli Weekly Overview-id');
+    expect(execFileSync).toHaveBeenCalledWith(
+      'openclaw',
+      expect.arrayContaining([
+        'cron',
+        'add',
+        '--name',
+        'ouraclaw-cli Weekly Overview',
+        '--cron',
+        '0 13 * * 1',
+      ]),
+      expect.objectContaining({ encoding: 'utf8', timeout: 10000 })
+    );
   });
 
   test('removes managed jobs and reports schedule status', () => {
     let jobs = [
       { id: 'morning-1', name: 'ouraclaw-cli Morning Summary #1' },
       { id: 'morning-2', name: 'ouraclaw-cli Morning Summary #2' },
+      { id: 'weekly-1', name: 'ouraclaw-cli Weekly Overview' },
       { id: 'legacy-id', name: 'OuraClaw Evening Summary' },
     ];
     execFileSync.mockImplementation((_cmd: string, args: string[]) => {
@@ -269,9 +299,10 @@ describe('schedule helpers', () => {
       removeManagedScheduleJobs({
         morningCronJobIds: ['morning-1', 'morning-2'],
         eveningCronJobId: undefined,
+        weeklyOverviewCronJobId: 'weekly-1',
       })
     ).toEqual({
-      removedIds: ['morning-1', 'morning-2'],
+      removedIds: ['morning-1', 'morning-2', 'weekly-1'],
     });
 
     const status = getScheduleStatus({
@@ -288,6 +319,10 @@ describe('schedule helpers', () => {
       morningCronJobIds: ['morning-1', 'morning-2'],
       eveningEnabled: false,
       eveningTime: '21:00',
+      weeklyOverviewEnabled: true,
+      weeklyOverviewDay: 'monday',
+      weeklyOverviewTime: '13:00',
+      weeklyOverviewCronJobId: 'weekly-1',
     });
 
     expect(status.existingManagedJobs).toEqual([]);
@@ -301,6 +336,7 @@ describe('schedule helpers', () => {
     expect(getManagedJobNames()).toEqual({
       morningPrefix: 'ouraclaw-cli Morning Summary',
       evening: 'ouraclaw-cli Evening Summary',
+      weeklyOverview: 'ouraclaw-cli Weekly Overview',
     });
   });
 });

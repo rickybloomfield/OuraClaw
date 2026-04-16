@@ -81,10 +81,11 @@ completed Sunday-night sleep.
 `ouraclaw-cli` can manage OpenClaw cron jobs directly through `schedule setup`, `schedule status`, `schedule disable`,
 and `schedule migrate-from-ouraclaw-plugin`.
 
-Two schedule types are supported:
+Three schedule types are supported:
 
 - morning summary watcher
 - fixed-time evening recap
+- fixed-time weekly overview
 
 The morning summary watcher is a repeated cron window rather than a single time, though users can set the same start
 and end time for one morning check. It can run multiple times between a start and end time so the user can be notified
@@ -94,4 +95,5 @@ schedule.
 
 All managed schedules use the shipped Oura skill in `skills/oura/`, inject the configured delivery language, and direct
 the agent to send to the configured OpenClaw channel and target. Morning summary jobs also instruct the agent to
-confirm delivery only after a successful send.
+confirm delivery only after a successful send. Weekly overview jobs run on one configured weekday and time, using the
+completed-day weekly recap contract.

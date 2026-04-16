@@ -36,6 +36,9 @@ export const DEFAULT_SCHEDULE_CONFIG = {
   morningIntervalMinutes: 60,
   eveningEnabled: false,
   eveningTime: '21:00',
+  weeklyOverviewEnabled: false,
+  weeklyOverviewDay: 'monday',
+  weeklyOverviewTime: '13:00',
 } as const;
 
 export const BASELINE_METRICS = [

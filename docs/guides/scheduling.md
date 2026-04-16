@@ -7,6 +7,7 @@ messages by hand.
 
 - morning summary watcher over a single check or repeated morning window
 - evening recap at one fixed time
+- weekly overview at one fixed weekday and time
 
 The morning summary watcher exists because Oura data does not always sync at the same time. Instead of guessing one
 perfect morning trigger, the watcher can check multiple times, for example every hour from `08:00` through `13:00`,
@@ -34,12 +35,13 @@ The walkthrough:
    default.
 5. Asks for delivery language. Default is `English`.
 6. Asks which schedule types to enable.
-7. For the morning summary watcher, asks whether it should:
+7. For the weekly overview, asks which weekday and time should deliver the recap.
+8. For the morning summary watcher, asks whether it should:
    - alert only when attention is needed
    - send every day once today's Oura data is ready
-8. Asks for timezone and schedule times.
-9. Creates or replaces the managed OpenClaw cron jobs.
-10. Optionally removes old OuraClaw plugin cron jobs during the same walkthrough.
+9. Asks for timezone and schedule times.
+10. Creates or replaces the managed OpenClaw cron jobs.
+11. Optionally removes old OuraClaw plugin cron jobs during the same walkthrough.
 
 ## Delivery Language
 
@@ -62,6 +64,14 @@ The morning summary watcher runs `summary morning` repeatedly inside the configu
   `ouraclaw-cli summary morning-confirm --delivery-key <deliveryKey>`.
 
 That confirmation matters because it lets later watcher runs on the same day suppress duplicates cleanly.
+
+## Weekly Overview Behavior
+
+The weekly overview is a single weekly cron job. It runs `summary week-overview` using the completed-day recap
+contract, so a Monday job can cover the previous Monday through Sunday while still including the finished Sunday-night
+sleep on the Sunday row.
+
+Use a weekly overview when the main goal is one concise recap of the previous week, not a same-day watcher flow.
 
 ## Single Check vs Morning Window
 

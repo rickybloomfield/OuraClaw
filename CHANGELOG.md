@@ -14,6 +14,8 @@ All notable changes to this project will be documented in this file.
 - Added `summary week-overview --text` for a compact English weekly recap preview in the local CLI.
 - Expanded `summary week-overview` with completed-day activity and stress context, including per-day `steps` and
   `daySummary` plus weekly `totalSteps`, `averageSteps`, and `topStressSummaries`.
+- Added weekly overview scheduling to `schedule setup`, `schedule status`, and `schedule disable`, including a fixed
+  weekday/time OpenClaw cron job for `summary week-overview`.
 
 ## [0.4.0] - 2026-04-13
 

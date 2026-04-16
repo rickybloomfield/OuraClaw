@@ -44,11 +44,12 @@ Schedule state is also stored in the local CLI JSON file. The scheduler section 
 - delivery channel and target
 - delivery language, default `English`
 - timezone
-- enabled status for the morning summary watcher and evening recap
+- enabled status for the morning summary watcher, evening recap, and weekly overview
 - morning summary delivery mode:
   - `unusual-only`
   - `daily-when-ready`
 - morning summary start time, end time, and interval minutes
+- weekly overview day and time
 - stored OpenClaw cron job IDs
 
 Use `ouraclaw-cli schedule setup` to configure or update these values. `schedule status` prints the current state plus

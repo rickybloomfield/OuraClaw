@@ -85,8 +85,8 @@ Useful schedule keys include:
 
 Interactive scheduler walkthrough. Detects legacy OuraClaw config and cron jobs, asks for a delivery channel first,
 offers known targets as shortcuts while still allowing manual target entry, then collects delivery language, timezone,
-which schedules to enable, and the morning summary delivery mode before creating or replacing the managed OpenClaw cron
-jobs.
+which schedules to enable, the weekly overview day/time, and the morning summary delivery mode before creating or
+replacing the managed OpenClaw cron jobs.
 
 ### `ouraclaw-cli schedule status`
 
