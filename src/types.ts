@@ -283,6 +283,19 @@ export interface WeekOverviewMetric {
   attention: boolean;
 }
 
+export interface WeekOverviewActivity {
+  score: number | null;
+  steps: number | null;
+  activeCalories: number | null;
+  totalCalories: number | null;
+}
+
+export interface WeekOverviewStress {
+  daySummary: string | null;
+  stressHigh: number | null;
+  recoveryHigh: number | null;
+}
+
 export interface WeekOverviewDay {
   day: string;
   weekday: string;
@@ -292,10 +305,17 @@ export interface WeekOverviewDay {
   attentionMetrics: BaselineMetricKey[];
   missingMetrics: BaselineMetricKey[];
   metrics: WeekOverviewMetric[];
+  activity: WeekOverviewActivity;
+  stress: WeekOverviewStress;
 }
 
 export interface WeekOverviewTopAttentionMetric {
   metric: BaselineMetricKey;
+  count: number;
+}
+
+export interface WeekOverviewStressSummaryCount {
+  summary: string;
   count: number;
 }
 
@@ -312,6 +332,9 @@ export interface WeekOverviewResult {
     readyDays: number;
     attentionDays: number;
     topAttentionMetrics: WeekOverviewTopAttentionMetric[];
+    totalSteps: number;
+    averageSteps: number | null;
+    topStressSummaries: WeekOverviewStressSummaryCount[];
   };
   days: WeekOverviewDay[];
 }

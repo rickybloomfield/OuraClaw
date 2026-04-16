@@ -72,7 +72,9 @@ execution, prefers JSON for automation, and uses `--text` only when it needs a s
 
 The same JSON-first contract is intended to work equally well for non-OpenClaw automations. In addition to the daily
 recap commands and morning summary decision, `summary week-overview` is a first-class structured output for concise
-weekly recaps and localized agent rendering.
+weekly recaps and localized agent rendering. That weekly view is calendar-day-oriented: by default it excludes today
+and shifts each morning-style metric bundle back one day so the final row in a Monday recap can still include the
+completed Sunday-night sleep.
 
 ## Scheduling
 

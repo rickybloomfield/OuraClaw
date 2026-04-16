@@ -45,6 +45,16 @@ describe('cli', () => {
     expect(summarySubcommands).toContain('week-overview');
   });
 
+  test('registers text preview support for week-overview', () => {
+    const summaryCommand = createProgram().commands.find((command) => command.name() === 'summary');
+    const weekOverviewCommand = summaryCommand?.commands.find(
+      (command) => command.name() === 'week-overview'
+    );
+    const optionFlags = weekOverviewCommand?.options.map((option) => option.flags);
+
+    expect(optionFlags).toContain('--text');
+  });
+
   test('registers the auth management commands', () => {
     const authCommand = createProgram().commands.find((command) => command.name() === 'auth');
     const authSubcommands = authCommand?.commands.map((command) => command.name()).sort();

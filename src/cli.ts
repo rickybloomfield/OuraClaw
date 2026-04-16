@@ -44,7 +44,7 @@ import {
 import { readState, updateState, writeState } from './state-store';
 import { buildEveningSummary, selectPreferredSleepRecord } from './summaries';
 import { defaultThresholds, validateThresholds } from './thresholds';
-import { buildWeekOverview } from './week-overview';
+import { buildWeekOverview, buildWeekOverviewText } from './week-overview';
 import {
   BaselineConfig,
   DailyActivity,
@@ -670,7 +670,7 @@ export function resolveWeekOverviewDateRange(startDate?: string, endDate?: strin
   const mode: 'custom' | 'last-7-days' = startDate || endDate ? 'custom' : 'last-7-days';
 
   if (!start && !end) {
-    end = today;
+    end = getTodayIsoDate(addDays(parseIsoDate(today), -1));
     start = getTodayIsoDate(addDays(parseIsoDate(end), -6));
   } else if (start && !end) {
     parseIsoDate(start);
@@ -803,6 +803,25 @@ export async function fetchMorningBaselineRecordsForRange(
       };
     })
     .filter(hasAnyMorningBaselineValue);
+}
+
+export async function fetchWeekOverviewRecordsForRange(
+  accessToken: string,
+  startDay: string,
+  endDay: string
+): Promise<OuraRecord[]> {
+  const shiftedStartDay = getTodayIsoDate(addDays(parseIsoDate(startDay), 1));
+  const shiftedEndDay = getTodayIsoDate(addDays(parseIsoDate(endDay), 1));
+  const morningRecords = await fetchMorningBaselineRecordsForRange(
+    accessToken,
+    shiftedStartDay,
+    shiftedEndDay
+  );
+
+  return morningRecords.map((record) => ({
+    ...record,
+    day: getTodayIsoDate(addDays(parseIsoDate(record.day), -1)),
+  }));
 }
 
 function hasMorningDeliveredToday(state: OuraCliState, day: string): boolean {
@@ -1064,7 +1083,11 @@ export async function runMorningSummaryJson(
   printJson(await buildMorningResult(deliveryMode));
 }
 
-export async function runWeekOverview(startDate?: string, endDate?: string): Promise<void> {
+export async function runWeekOverview(
+  textMode = false,
+  startDate?: string,
+  endDate?: string
+): Promise<void> {
   const range = resolveWeekOverviewDateRange(startDate, endDate);
   const accessToken = await ensureValidAccessToken();
   let state = readState();
@@ -1090,21 +1113,32 @@ export async function runWeekOverview(startDate?: string, endDate?: string): Pro
     }
   }
 
-  const records = await fetchMorningBaselineRecordsForRange(accessToken, range.start, range.end);
-  printJson(
-    buildWeekOverview({
-      startDay: range.start,
-      endDay: range.end,
-      timezone: state.schedule.timezone,
-      mode: range.mode,
-      days: range.days,
-      records,
-      thresholds: state.thresholds,
-      baselineConfig: state.baselineConfig,
-      baseline,
-      baselineStatus,
-    })
-  );
+  const [records, activityResponse, stressResponse] = await Promise.all([
+    fetchWeekOverviewRecordsForRange(accessToken, range.start, range.end),
+    fetchOuraData<DailyActivity>(accessToken, 'daily_activity', range.start, range.end),
+    fetchOuraData<DailyStress>(accessToken, 'daily_stress', range.start, range.end),
+  ]);
+  const result = buildWeekOverview({
+    startDay: range.start,
+    endDay: range.end,
+    timezone: state.schedule.timezone,
+    mode: range.mode,
+    days: range.days,
+    records,
+    activityRecords: activityResponse.data,
+    stressRecords: stressResponse.data,
+    thresholds: state.thresholds,
+    baselineConfig: state.baselineConfig,
+    baseline,
+    baselineStatus,
+  });
+
+  if (textMode) {
+    printText(buildWeekOverviewText(result));
+    return;
+  }
+
+  printJson(result);
 }
 
 export async function confirmMorningDelivery(
@@ -1369,8 +1403,9 @@ export function createProgram(): Command {
     .command('week-overview')
     .option('--start-date <startDate>', 'Start date in YYYY-MM-DD format')
     .option('--end-date <endDate>', 'End date in YYYY-MM-DD format')
-    .action(async (options: { startDate?: string; endDate?: string }) => {
-      await runWeekOverview(options.startDate, options.endDate);
+    .option('--text', 'Print compact English recap text')
+    .action(async (options: { startDate?: string; endDate?: string; text?: boolean }) => {
+      await runWeekOverview(Boolean(options.text), options.startDate, options.endDate);
     });
   summary
     .command('evening')

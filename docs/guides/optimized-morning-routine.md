@@ -109,9 +109,11 @@ Supporting metrics can still show `severity: "worse"` on calm days without being
 ## Weekly Context
 
 The CLI also exposes `summary week-overview` as a separate seven-day JSON summary. It defaults to the last seven days
-including today and is shaped for brief localized recaps: one concise daily line, explicit attention markers, and
-structured per-metric fields for agent rendering. Those attention markers follow the same actionable rule as
-`summary morning`, so a supporting outlier does not get `⚠️` unless it helped drive the alert.
+excluding today and is shaped for brief localized recaps: one concise daily line, explicit attention markers, and
+structured per-metric fields for agent rendering. The weekly view treats each row as a completed calendar day, so it
+shifts the morning-style metric bundle back by one day. That lets a Monday recap cover the previous Monday through
+Sunday while still including Sunday-night to Monday-morning sleep on the Sunday row. Those attention markers follow the
+same actionable rule as `summary morning`, so a supporting outlier does not get `⚠️` unless it helped drive the alert.
 
 That weekly command is independent of the morning summary decision, but it is the intended input for future Monday
 messages that combine the normal morning check with a quick look back at the previous week.

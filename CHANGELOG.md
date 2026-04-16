@@ -8,6 +8,12 @@ All notable changes to this project will be documented in this file.
 
 - Restricted `metricSignals[].attention`, `attentionMetrics`, and weekly `⚠️` markers to metrics that actually
   contributed to `alertMetrics`, so supporting outliers remain visible without being treated as actionable attention.
+- Changed `summary week-overview` to default to the last seven completed calendar days, excluding today, and to shift
+  the morning-style metric bundle back one day so Monday weekly recaps can include Sunday-night sleep on the Sunday
+  row.
+- Added `summary week-overview --text` for a compact English weekly recap preview in the local CLI.
+- Expanded `summary week-overview` with completed-day activity and stress context, including per-day `steps` and
+  `daySummary` plus weekly `totalSteps`, `averageSteps`, and `topStressSummaries`.
 
 ## [0.4.0] - 2026-04-13
 

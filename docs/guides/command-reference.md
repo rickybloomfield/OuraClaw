@@ -18,7 +18,7 @@ Runtime requirement: Node.js 20 or newer.
 ## Output Modes
 
 - JSON is the default output for every command.
-- `--text` is supported on `summary morning` and `summary evening`.
+- `--text` is supported on `summary morning`, `summary week-overview`, and `summary evening`.
 - `fetch` returns the raw Oura endpoint payload.
 
 ## Commands
@@ -113,18 +113,33 @@ In `daily-when-ready` mode, a ready day without an alert can still return `shoul
 summary message. The result shape stays the same on both calm and attention days; there is no separate morning
 delivery type branch.
 
-### `ouraclaw-cli summary week-overview [--start-date YYYY-MM-DD] [--end-date YYYY-MM-DD]`
+### `ouraclaw-cli summary week-overview [--start-date YYYY-MM-DD] [--end-date YYYY-MM-DD] [--text]`
 
 Builds a seven-day JSON overview using the same attention logic as `summary morning`. With no flags, the
-range is the last seven days including today. With only `--start-date`, the range is that date plus the next six days.
-With only `--end-date`, the range is that date and the previous six days. With both flags, the inclusive range must be
-exactly seven days.
+range is the last seven completed calendar days, excluding today. With only `--start-date`, the range is that date
+plus the next six days. With only `--end-date`, the range is that date and the previous six days. With both flags, the
+inclusive range must be exactly seven days.
+
+For weekly recap rendering, each row is labeled by the completed calendar day being reviewed. The underlying sleep,
+readiness, temperature, HRV, heart-rate, and total-sleep bundle is shifted back one day from the morning-style Oura
+record ownership, so a Monday run can show the previous Monday through Sunday while still including Sunday-night to
+Monday-morning sleep on the Sunday row.
 
 The result includes `period`, `baselineStatus`, `metricOrder`, `overview`, and `days`. Each day includes `weekday`,
-`dataReady`, `shouldAlert`, a concise English fallback `summaryLine`, `attentionMetrics`, `missingMetrics`, and compact
-`metrics` entries with `key`, raw `value`, `unit`, localized-rendering helper `displayValue`, and `attention`.
-`summaryLine` omits missing values and prefixes only actionable attention metrics with `⚠️`. For non-English summaries,
-render from `metricOrder`, `metrics`, and `attentionMetrics` instead of translating `summaryLine`.
+`dataReady`, `shouldAlert`, a concise English fallback `summaryLine`, `attentionMetrics`, `missingMetrics`, compact
+`metrics` entries with `key`, raw `value`, `unit`, localized-rendering helper `displayValue`, and `attention`, plus
+completed-day `activity` and `stress` context. `summaryLine` omits missing values and prefixes only actionable
+attention metrics with `⚠️`. For non-English summaries, render from `metricOrder`, `metrics`, and `attentionMetrics`
+instead of translating `summaryLine`.
+
+`overview` also includes step and stress rollups for the seven-day window:
+
+- `totalSteps`
+- `averageSteps`
+- `topStressSummaries`
+
+With `--text`, the command prints a compact English recap intended for local inspection: one header line, one line per
+day with appended step and stress context when available, and an optional closing pattern note.
 
 ### `ouraclaw-cli summary morning-confirm --delivery-key <deliveryKey> [--delivery-mode unusual-only|daily-when-ready]`
 
