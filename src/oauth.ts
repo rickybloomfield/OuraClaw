@@ -1,59 +1,56 @@
-import http from "http";
-import https from "https";
-import crypto from "crypto";
-import { URL } from "url";
-import { OuraTokenResponse } from "./types";
+import crypto from 'node:crypto';
+import http from 'node:http';
+import https from 'node:https';
+import { URL } from 'node:url';
 
-const AUTHORIZE_URL = "https://cloud.ouraring.com/oauth/authorize";
-const TOKEN_URL = "https://api.ouraring.com/oauth/token";
-const REDIRECT_URI = "http://localhost:9876/callback";
-const SCOPES = "email personal daily heartrate workout session spo2 tag stress heart_health ring_configuration";
+import {
+  AUTHORIZE_URL,
+  CALLBACK_HOST,
+  CALLBACK_PORT,
+  DEFAULT_OAUTH_TIMEOUT_MS,
+  OAUTH_SCOPES,
+  REDIRECT_URI,
+  TOKEN_URL,
+} from './config';
+import { OAuthStartInput, OAuthStartResult, OuraTokenResponse } from './types';
 
-export function generateOAuthState(): string {
-  return crypto.randomBytes(32).toString("hex");
+export interface OAuthCaptureOptions {
+  host?: string;
+  port?: number;
+  timeoutMs?: number;
 }
 
-export function buildAuthorizeUrl(clientId: string, state: string): string {
+export function generateRandomToken(length = 32): string {
+  return crypto.randomBytes(length).toString('base64url');
+}
+
+export function buildPkcePair(): { codeVerifier: string; codeChallenge: string } {
+  const codeVerifier = generateRandomToken(48);
+  const codeChallenge = crypto.createHash('sha256').update(codeVerifier).digest('base64url');
+  return { codeVerifier, codeChallenge };
+}
+
+export function buildAuthorizeUrl(input: OAuthStartInput): OAuthStartResult {
+  const state = generateRandomToken();
+  const redirectUri = input.redirectUri ?? REDIRECT_URI;
   const params = new URLSearchParams({
-    response_type: "code",
-    client_id: clientId,
-    redirect_uri: REDIRECT_URI,
-    scope: SCOPES,
+    response_type: 'code',
+    client_id: input.clientId,
+    redirect_uri: redirectUri,
+    scope: input.scopes ?? OAUTH_SCOPES,
     state,
   });
-  return `${AUTHORIZE_URL}?${params.toString()}`;
+
+  return {
+    authorizeUrl: `${AUTHORIZE_URL}?${params.toString()}`,
+    state,
+    codeVerifier: '',
+    codeChallenge: '',
+    redirectUri,
+  };
 }
 
-export function exchangeCodeForTokens(
-  clientId: string,
-  clientSecret: string,
-  code: string,
-): Promise<OuraTokenResponse> {
-  return postTokenRequest({
-    grant_type: "authorization_code",
-    code,
-    client_id: clientId,
-    client_secret: clientSecret,
-    redirect_uri: REDIRECT_URI,
-  });
-}
-
-export function refreshAccessToken(
-  clientId: string,
-  clientSecret: string,
-  refreshToken: string,
-): Promise<OuraTokenResponse> {
-  return postTokenRequest({
-    grant_type: "refresh_token",
-    refresh_token: refreshToken,
-    client_id: clientId,
-    client_secret: clientSecret,
-  });
-}
-
-function postTokenRequest(
-  body: Record<string, string>,
-): Promise<OuraTokenResponse> {
+function postTokenRequest(body: Record<string, string>): Promise<OuraTokenResponse> {
   const postData = new URLSearchParams(body).toString();
   const parsed = new URL(TOKEN_URL);
 
@@ -62,66 +59,110 @@ function postTokenRequest(
       {
         hostname: parsed.hostname,
         path: parsed.pathname,
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          "Content-Length": Buffer.byteLength(postData),
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Content-Length': Buffer.byteLength(postData),
         },
       },
       (res) => {
-        let data = "";
-        res.on("data", (chunk) => (data += chunk));
-        res.on("end", () => {
+        let data = '';
+        res.setEncoding('utf8');
+        res.on('data', (chunk) => {
+          data += chunk;
+        });
+        res.on('end', () => {
           if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
             try {
-              resolve(JSON.parse(data));
-            } catch (e) {
+              resolve(JSON.parse(data) as OuraTokenResponse);
+            } catch {
               reject(new Error(`Failed to parse token response: ${data}`));
             }
-          } else {
-            reject(new Error(`Token request failed (${res.statusCode}): ${data}`));
+            return;
           }
+
+          reject(new Error(`Token request failed (${res.statusCode ?? 'unknown'}): ${data}`));
         });
-      },
+      }
     );
-    req.on("error", reject);
+
+    req.on('error', reject);
     req.write(postData);
     req.end();
   });
 }
 
-export function captureOAuthCallback(expectedState: string): Promise<string> {
+export function exchangeCodeForTokens(
+  clientId: string,
+  clientSecret: string,
+  code: string,
+  _codeVerifier: string,
+  redirectUri = REDIRECT_URI
+): Promise<OuraTokenResponse> {
+  return postTokenRequest({
+    grant_type: 'authorization_code',
+    code,
+    client_id: clientId,
+    client_secret: clientSecret,
+    redirect_uri: redirectUri,
+  });
+}
+
+export function refreshAccessToken(
+  clientId: string,
+  clientSecret: string,
+  refreshToken: string
+): Promise<OuraTokenResponse> {
+  return postTokenRequest({
+    grant_type: 'refresh_token',
+    refresh_token: refreshToken,
+    client_id: clientId,
+    client_secret: clientSecret,
+  });
+}
+
+export function captureOAuthCallback(
+  expectedState: string,
+  options: OAuthCaptureOptions = {}
+): Promise<string> {
+  const host = options.host ?? CALLBACK_HOST;
+  const port = options.port ?? CALLBACK_PORT;
+  const timeoutMs = options.timeoutMs ?? DEFAULT_OAUTH_TIMEOUT_MS;
+
   return new Promise((resolve, reject) => {
     let settled = false;
-    let timeoutId: NodeJS.Timeout | undefined;
 
-    const settle = (fn: () => void) => {
-      if (settled) return;
+    const settle = (callback: () => void) => {
+      if (settled) {
+        return;
+      }
+
       settled = true;
       if (timeoutId) {
         clearTimeout(timeoutId);
       }
       server.close();
-      fn();
+      callback();
     };
 
     const server = http.createServer((req, res) => {
       if (settled) {
         res.writeHead(409);
-        res.end("OAuth flow already completed");
+        res.end('OAuth flow already completed');
         return;
       }
 
-      if (!req.url?.startsWith("/callback")) {
+      const requestUrl = req.url ?? '';
+      if (!requestUrl.startsWith('/callback')) {
         res.writeHead(404);
-        res.end("Not found");
+        res.end('Not found');
         return;
       }
 
-      const url = new URL(req.url, `http://localhost:9876`);
-      const code = url.searchParams.get("code");
-      const error = url.searchParams.get("error");
-      const state = url.searchParams.get("state");
+      const url = new URL(requestUrl, `http://${host}:${port}`);
+      const code = url.searchParams.get('code');
+      const error = url.searchParams.get('error');
+      const state = url.searchParams.get('state');
 
       if (error) {
         res.writeHead(400);
@@ -131,46 +172,40 @@ export function captureOAuthCallback(expectedState: string): Promise<string> {
       }
 
       if (!code) {
-        // No code and no error — likely a stray browser request (prefetch,
-        // favicon redirect, etc.). Keep the server running so the real
-        // OAuth callback can still arrive.
         res.writeHead(200);
-        res.end("Waiting for authorization...");
+        res.end('Waiting for authorization...');
         return;
       }
 
       if (!state) {
         res.writeHead(400);
-        res.end("Missing OAuth state");
-        settle(() => reject(new Error("Missing OAuth state in callback")));
+        res.end('Missing OAuth state');
+        settle(() => reject(new Error('Missing OAuth state in callback')));
         return;
       }
 
       if (state !== expectedState) {
         res.writeHead(400);
-        res.end("Invalid OAuth state");
-        settle(() => reject(new Error("OAuth state mismatch in callback")));
+        res.end('Invalid OAuth state');
+        settle(() => reject(new Error('OAuth callback state mismatch')));
         return;
       }
 
-      res.writeHead(200, { "Content-Type": "text/html" });
+      res.writeHead(200, { 'Content-Type': 'text/html' });
       res.end(
-        "<html><body><h2>OuraClaw authorized!</h2><p>You can close this tab and return to the terminal.</p></body></html>",
+        '<html><body><h2>Oura authorized.</h2><p>You can close this tab and return to the terminal.</p></body></html>'
       );
       settle(() => resolve(code));
     });
 
-    server.listen(9876, "localhost", () => {
-      // Server is ready, waiting for callback
+    server.on('error', (error) => {
+      settle(() => reject(new Error(`Failed to start OAuth callback server: ${error.message}`)));
     });
 
-    server.on("error", (err) => {
-      settle(() => reject(new Error(`Failed to start OAuth callback server: ${err.message}`)));
-    });
+    const timeoutId = setTimeout(() => {
+      settle(() => reject(new Error('OAuth callback timed out after 2 minutes')));
+    }, timeoutMs);
 
-    // Timeout after 2 minutes
-    timeoutId = setTimeout(() => {
-      settle(() => reject(new Error("OAuth callback timed out after 2 minutes")));
-    }, 120_000);
+    server.listen(port, host);
   });
 }

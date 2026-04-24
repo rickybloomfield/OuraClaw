@@ -1,82 +1,95 @@
 ---
 name: oura
-description: Oura Ring health data — sleep, readiness, activity, and stress
-gatedOn: plugins.entries.ouraclaw.config.accessToken
+description: Oura Ring sleep, readiness, activity, stress, and automated recap access through `ouraclaw-cli`.
+homepage: https://github.com/robert7/ouraclaw-cli
+metadata:
+  {
+    "openclaw":
+      {
+        "emoji": "🫧",
+        "requires": { "bins": ["ouraclaw-cli"] },
+        "install":
+          [
+            {
+              "id": "node",
+              "kind": "node",
+              "package": "@robertvii/ouraclaw-cli",
+              "bins": ["ouraclaw-cli"],
+              "label": "Install ouraclaw-cli (npm)",
+            },
+          ],
+      },
+  }
 ---
 
-# Oura Ring Health Data
+# Oura via ouraclaw-cli
 
-You have access to the user's Oura Ring data through the `oura_data` tool. Use it to answer health questions and deliver scheduled summaries.
+Use this skill when the user wants Oura Ring data, a morning summary, an evening recap, or a weekly overview.
 
-## Endpoint Reference
+## Preconditions
 
-### Core (used in daily summaries)
+1. `ouraclaw-cli` is installed on the same machine as OpenClaw.
+2. `ouraclaw-cli setup` has already completed successfully.
+3. If setup has not completed, stop and ask the user to run `ouraclaw-cli setup`.
 
-| Endpoint | Returns | Key Fields |
-|----------|---------|------------|
-| `daily_sleep` | Sleep score & contributors | `score`, `contributors.deep_sleep`, `.efficiency`, `.rem_sleep`, `.restfulness`, `.total_sleep` |
-| `daily_readiness` | Readiness score & contributors | `score`, `contributors.hrv_balance`, `.resting_heart_rate`, `.recovery_index`, `.sleep_balance` |
-| `daily_activity` | Activity score & metrics | `score`, `steps`, `active_calories`, `total_calories`, `high_activity_time`, `medium_activity_time` |
-| `sleep` | Detailed sleep periods | `duration`, `total_sleep_duration`, `deep_sleep_duration`, `rem_sleep_duration`, `light_sleep_duration`, `efficiency`, `average_heart_rate`, `lowest_heart_rate`, `average_hrv`, `bedtime_start`, `bedtime_end` |
-| `daily_stress` | Stress summary | `stress_high`, `recovery_high`, `day_summary` |
+## Command Invocation Rule
 
-### Additional (available for ad-hoc queries)
+- Run exactly one `ouraclaw-cli` command per execution.
+- Invoke `ouraclaw-cli` directly.
+- Do not chain commands with `&&`, `|`, `;`, subshells, or command substitution.
+- Prefer the exact command forms documented below so OpenClaw allowlisting stays simple.
 
-| Endpoint | Returns | Key Fields |
-|----------|---------|------------|
-| `heartrate` | Continuous heart rate samples | `bpm`, `source`, `timestamp` |
-| `daily_spo2` | Blood oxygen levels | `spo2_percentage`, `breathing_disturbance_index` |
-| `workout` | Workout sessions | `activity`, `calories`, `duration`, `distance`, `intensity`, `start_datetime`, `end_datetime` |
-| `session` | Mindfulness/breathing sessions | `type`, `mood`, `duration`, `heart_rate`, `hrv` |
-| `enhanced_tag` | User-created tags | `tag_type_code`, `comment`, `timestamp` |
-| `daily_cardiovascular_age` | Cardiovascular age estimate | `vascular_age` |
-| `daily_resilience` | Resilience score & contributors | `level`, `contributors.sleep_recovery`, `.daytime_recovery`, `.stress` |
-| `vO2_max` | VO2 max estimate | `vo2_max`, `timestamp` |
-| `rest_mode_period` | Rest mode periods | `start_day`, `end_day`, `episodes` |
-| `sleep_time` | Recommended sleep times | `recommendation`, `status`, `ideal_bedtime_start`, `ideal_bedtime_end` |
-| `ring_configuration` | Ring hardware info | `color`, `design`, `firmware_version`, `hardware_type`, `set_up_at`, `size` |
-| `personal_info` | User profile | `age`, `weight`, `height`, `biological_sex`, `email` |
-| `tag` | Tags (deprecated, use `enhanced_tag`) | `tag_type_code`, `timestamp` |
+## Output Rule
 
-## Usage Instructions
+- JSON is the default output for all commands.
+- Use JSON when the command result needs machine reasoning or a formatted channel message.
+- For scheduled summaries and morning sends, use the JSON output and compose the final channel message from the
+  template in this skill.
 
-- **Date defaults**: If no dates specified, the tool defaults to today's data. Use `start_date` and `end_date` in `YYYY-MM-DD` format for specific ranges.
-- **Multi-endpoint queries**: For comprehensive answers, call multiple endpoints. E.g., "How did I sleep?" should fetch both `daily_sleep` (score) and `sleep` (details).
-- **Duration conversion**: Sleep/activity durations are in **seconds**. Convert to hours and minutes: `27360s` → `7h 36m`.
-- **Null values**: Some fields may be `null` if Oura hasn't computed them yet. Note this gracefully rather than showing "null".
+## Common Commands
 
-## Score Interpretation
+- Health check: `ouraclaw-cli auth status`
+- Raw endpoint fetch:
+  - `ouraclaw-cli fetch daily_sleep`
+  - `ouraclaw-cli fetch sleep --start-date 2026-03-12 --end-date 2026-03-13`
+- Manual baseline rebuild: `ouraclaw-cli baseline rebuild`
+- Morning summary data: `ouraclaw-cli summary morning`
+- Evening recap data: `ouraclaw-cli summary evening`
+- Morning delivery confirmation: `ouraclaw-cli summary morning-confirm --delivery-key <deliveryKey>`
+- Seven-day overview: `ouraclaw-cli summary week-overview`
+- Seven-day overview text preview: `ouraclaw-cli summary week-overview --text`
 
-| Range | Label |
-|-------|-------|
-| 85+ | Excellent |
-| 70–84 | Good |
-| 60–69 | Fair |
-| Below 60 | Needs attention |
+## Date Rules
+
+- `fetch` defaults to today's date when no date flags are provided.
+- If you need today's detailed sleep period, fetch `sleep` over yesterday -> today and then use the record whose `day`
+  equals today, preferring `type="long_sleep"` if multiple records are returned.
 
 ## Formatting Guidelines
 
-- Use concise bullet points, not long paragraphs
-- Lead with scores and labels (e.g., "Sleep: 82 (Good)")
-- Include 2–3 key contributor details per category
-- Convert all durations from seconds to Xh Ym format
-- Add brief, personalized context when relevant (e.g., "HRV is trending lower than usual")
-- Keep summaries scannable — the user may be reading on a phone
-- **Adapt formatting to the delivery channel** — see Channel Formatting Guide below
+- Use concise bullet points, not long paragraphs.
+- Lead with scores and labels.
+- Include 2-3 key details per category.
+- Convert durations from seconds to `Xh Ym` where needed.
+- Keep summaries scannable because the user may be reading on a phone.
+- Adapt formatting to the delivery channel using the guide below.
+- For `summary week-overview`, prefer one line per day. Use `days[].metrics` in `metricOrder`, prefix metrics with
+  `attention=true` using `⚠️`, and omit entries listed only in `missingMetrics`.
 
 ## Channel Formatting Guide
 
-Different messaging channels support different formatting syntax. Use the correct format for the delivery channel. When the channel is unknown or "default", use plain text formatting (safe everywhere).
+Different messaging channels support different formatting syntax. Use the correct format for the delivery channel. When
+the channel is unknown or `default`, use plain text formatting.
 
 ### Plain text — iMessage (bluebubbles), Signal
 
 No text-based formatting syntax is supported. Characters like `*`, `_`, and `~` appear literally.
 
-- Use emoji and whitespace for visual structure
-- Use UPPERCASE sparingly for emphasis if needed (e.g., "SLEEP: 82")
-- URLs are auto-linked — just include them as plain text
-- Use `|` or `·` as inline separators
-- Use `—` (em dash) for inline breaks
+- Use whitespace for visual structure.
+- Use UPPERCASE sparingly for emphasis if needed.
+- URLs are auto-linked, so include them as plain text.
+- Use `|` or `·` as inline separators.
+- Use `—` for inline breaks if helpful.
 
 ### WhatsApp
 
@@ -85,7 +98,7 @@ No text-based formatting syntax is supported. Characters like `*`, `_`, and `~` 
 - **Strikethrough**: `~text~`
 - **Inline code**: `` `text` ``
 - **Lists**: `- item` at the start of a line
-- URLs are auto-linked — do NOT use markdown link syntax `[text](url)`
+- URLs are auto-linked; do not use markdown link syntax `[text](url)`
 
 ### Telegram
 
@@ -100,14 +113,14 @@ Supports Markdown-style formatting:
 
 ### Slack
 
-Uses Slack's mrkdwn syntax (not standard Markdown):
+Uses Slack's mrkdwn syntax:
 
 - **Bold**: `*text*`
 - **Italic**: `_text_`
 - **Strikethrough**: `~text~`
 - **Links**: `<url|display text>`
 - **Lists**: `- item` or `• item`
-- Do NOT use standard Markdown bold (`**text**`) or link syntax (`[text](url)`)
+- Do not use standard Markdown bold (`**text**`) or link syntax (`[text](url)`)
 
 ### Discord
 
@@ -119,7 +132,7 @@ Uses standard Markdown:
 - **Strikethrough**: `~~text~~`
 - **Links**: `[display text](url)`
 - **Lists**: `- item`
-- **Headers**: `#`, `##`, `###` (at start of line)
+- **Headers**: `#`, `##`, `###` at the start of a line
 
 ### WebChat / Default
 
@@ -127,125 +140,164 @@ Use standard Markdown formatting.
 
 ## Scheduled Summary Delivery
 
-When producing a scheduled summary (morning or evening), follow these rules:
+When producing a scheduled summary or alert, follow these rules:
 
-- **Read the template carefully** and follow every format rule, including all specified data points, line counts, and examples.
-- **Send the complete formatted summary as a single message** to the channel and target specified in the request. Do not summarize, abbreviate, or rephrase the summary.
-- **Apply channel-appropriate formatting** using the Channel Formatting Guide above based on the channel specified in the request.
+- Read the template carefully and follow every format rule, including all specified data points, line counts, and
+  examples.
+- Run the appropriate `ouraclaw-cli` command in JSON mode and use that JSON as the source of truth for the final message.
+- Send the complete formatted summary as a single message to the channel and target specified in the request. Do not
+  summarize, abbreviate, or rephrase the final message after composing it.
+- Follow the request's delivery language for any channel message. If the request specifies Slovak, English, or any
+  other language, use that language for all user-visible text in the delivered message.
+- Treat examples in this skill as structure-only unless the request says otherwise. An English example does not
+  authorize sending the real channel message in English.
+- Apply channel-appropriate formatting using the Channel Formatting Guide above based on the channel specified in the
+  request.
 
 ## Morning Summary Template
 
-When delivering a morning summary, fetch `daily_sleep`, `sleep` (detailed periods), `daily_readiness`, `daily_activity`, and `daily_stress` for today. Also fetch yesterday's `daily_activity` as a fallback.
+When deciding whether a morning summary should be sent, run:
 
-Send only the formatted summary — no preamble, intro message, or extra commentary before or after it. Apply the correct formatting syntax for the delivery channel (see Channel Formatting Guide).
+`ouraclaw-cli summary morning`
+
+For a watcher configured to send every day once today's data is ready, run:
+
+`ouraclaw-cli summary morning --delivery-mode daily-when-ready`
+
+Interpret the JSON result as the source of truth:
+
+- If `dataReady` is `false`, send nothing and produce no output at all.
+- If `shouldSend` is `false`, send nothing and produce no output at all. Do not post a status message, explanation,
+  acknowledgment, or skip notice.
+- If `shouldSend` is `true`, compose the final channel message from this template in the delivery language using
+  `today`, `shouldAlert`, `baselineStatus`, `alertMetrics`, `alertReasons`, and `metricSignals`.
+- If `baselineStatus` is `"refresh_failed"`, trust the CLI decision anyway; it already fell back to fixed thresholds.
+- After the agent successfully delivers the summary, it must confirm delivery by running
+  `ouraclaw-cli summary morning-confirm --delivery-key <deliveryKey>`.
+- If the original command used `--delivery-mode daily-when-ready`, the confirmation command must use the same
+  `--delivery-mode daily-when-ready`.
+- Never confirm delivery if the send failed or was skipped.
+
+Send only the formatted summary, with no extra preamble or commentary.
 
 Format rules:
-- Start with "Good morning!" and today's date
-- **Sleep**: score with label, total sleep time (convert seconds to Xh Ym), key contributors that are notably high or low. From the detailed `sleep` endpoint, include lowest resting heart rate, average overnight heart rate, and average HRV. Show deep, REM, and light durations in minutes.
-- **Readiness**: score with label, body temperature deviation, HRV balance, recovery index. Call out anything that's dragging the score down.
-- **Activity**: use today's `daily_activity` if available (score, steps, active calories). If score is null or data is missing, use yesterday's activity instead and note that it's yesterday's data.
-- **Stress**: mention if data is available (normal, high, etc.). If no stress data, skip it.
-- End with: "Dive deeper in the Oura app: https://cloud.ouraring.com/app/v1/home — enjoy your day!" (include trailing text after the URL so it renders inline, not as a separate link preview).
-- Keep it concise — 8–10 lines max. Use emoji sparingly. Warm but not cheesy.
-- Bold the category labels and scores on channels that support bold (e.g., `*Sleep: 82 (Good)*` on WhatsApp/Telegram/Slack, `**Sleep: 82 (Good)**` on Discord). On plain text channels (iMessage, Signal), do not use any formatting markers.
 
-Example tone (plain text / iMessage):
+- Start with a brief morning greeting and today's date in the delivery language.
+- If `shouldAlert` is `true`, explain briefly that today's Oura data has one or more metrics that need attention.
+- If `shouldAlert` is `false`, use neutral daily-recap wording. Do not say the day needs attention.
+- Show all six morning metrics when present: sleep score, readiness score, temperature deviation, HRV, lowest heart
+  rate, and total sleep duration.
+- Mark metrics where `metricSignals[].attention` is `true`. Use `⚠️` on WhatsApp, Telegram, Discord, Slack, and
+  WebChat/default. Use `ATTENTION` on plain-text channels.
+- Treat `severity: "better"` signals as positive or neutral context, not warnings.
+- If baseline or fixed-threshold reasoning contributed, mention it briefly in plain language using `alertReasons`.
+- Keep it concise, roughly 5-8 lines max.
+- Bold category labels and scores on channels that support bold. On plain text channels, do not use formatting markers.
+- Treat the CLI `message` field as fallback context only; do not send it verbatim when this template can be filled from
+  JSON.
 
-```
-Good morning! Here's your recap for Monday, Jan 27.
+Example tone (plain text, structure only):
 
-😴 Sleep: 82 (Good) — 7h 12m total
-Deep 58m | REM 1h 24m | Light 4h 50m
-Lowest HR 52 bpm | Avg HR 58 bpm | HRV 42 ms
+```text
+Good morning! Here's your Oura summary for Monday, Jan 27.
 
-💪 Readiness: 78 (Good)
-Body temp +0.1°C | HRV balance solid | Recovery index slightly low
+Today's data looks a bit outside your usual range.
 
-🏃 Activity (yesterday): 74 (Good) — 8,241 steps, 312 active cal
+Sleep: ⚠️ 72 | Total 6h 15m
+Readiness: ⚠️ 68 | Body temp +0.2C
+HRV: 39 ms | Lowest HR: 52 bpm
 
-Stress: normal range
-
-Solid night overall — deep sleep was a bit short but REM made up for it.
-
-Dive deeper in the Oura app: https://cloud.ouraring.com/app/v1/home — enjoy your day!
-```
-
-Example tone (WhatsApp / Telegram / Slack):
-
-```
-Good morning! Here's your recap for Monday, Jan 27.
-
-😴 *Sleep: 82 (Good)* — 7h 12m total
-Deep 58m | REM 1h 24m | Light 4h 50m
-Lowest HR 52 bpm | Avg HR 58 bpm | HRV 42 ms
-
-💪 *Readiness: 78 (Good)*
-Body temp +0.1°C | HRV balance solid | Recovery index slightly low
-
-🏃 *Activity (yesterday): 74 (Good)* — 8,241 steps, 312 active cal
-
-Stress: normal range
-
-Solid night overall — deep sleep was a bit short but REM made up for it.
-
-Dive deeper in the Oura app: https://cloud.ouraring.com/app/v1/home — enjoy your day!
+Attention: sleep and readiness are below your usual morning range.
 ```
 
 ## Evening Summary Template
 
-When delivering an evening summary, fetch `daily_activity`, `daily_readiness`, `daily_stress`, and `daily_sleep` for today. Also fetch yesterday's `daily_activity` as a fallback in case today's data isn't available yet.
+When delivering a standard evening summary, run:
 
-Send only the formatted summary — no preamble, intro message, or extra commentary before or after it. Apply the correct formatting syntax for the delivery channel (see Channel Formatting Guide).
+`ouraclaw-cli summary evening`
+
+Use the returned JSON fields `day`, `dailyActivity`, `dailyReadiness`, `dailyStress`, `dailySleep`, and `missing` as
+the source data. Do not fall back to yesterday's data.
+
+Send only the formatted summary in the delivery language, with no extra preamble or commentary.
 
 Format rules:
-- Start with "Good evening!" and today's date
-- Focus on today's **activity**: score, steps, active calories, total calories. If today's activity score is null or data is missing, use yesterday's activity instead and note that it's yesterday's data. Activity data must always be included — never show "pending" or skip it.
+
+- Start with "Good evening!" and today's date in the delivery language.
+- Focus on today's **activity**: score, steps, active calories, and total calories. If activity is missing or pending,
+  say so directly rather than substituting another day.
 - Include today's **readiness** and **stress**.
 - Briefly mention last night's sleep score as a one-line recap.
-- End with a short, genuine motivational nudge to wind down, then: "Dive deeper in the Oura app: https://cloud.ouraring.com/app/v1/home — sleep well!" (include trailing text after the URL so it renders inline).
-- Keep it concise — 6–8 lines max. Use emoji sparingly.
-- Bold the category labels and scores on channels that support bold. On plain text channels (iMessage, Signal), do not use any formatting markers.
+- End with a short, genuine wind-down nudge in the delivery language.
+- Keep it concise, roughly 6-8 lines max.
+- Bold category labels and scores on channels that support bold. On plain text channels, do not use formatting markers.
 
-Example tone (plain text / iMessage):
+Example tone (plain text, structure only):
 
-```
+```text
 Good evening! Here's your day in review for Monday, Jan 27.
 
-🏃 Activity: 81 (Good) — 9,432 steps, 387 active cal, 2,145 total cal
-📊 Readiness: 78 (Good) | Stress: normal range
-😴 Last night's sleep: 82 (Good)
+Activity: 81 (Good) — 9,432 steps, 387 active cal, 2,145 total cal
+Readiness: 78 (Good) | Stress: normal range
+Last night's sleep: 82 (Good)
 
-Nice active day — you moved well. Wind down soon and aim for a solid bedtime to keep the momentum going.
-
-Dive deeper in the Oura app: https://cloud.ouraring.com/app/v1/home — sleep well!
+Nice active day. Wind down soon and set tomorrow up properly.
 ```
 
-Example tone (WhatsApp / Telegram / Slack):
+## Week Overview Template
 
-```
-Good evening! Here's your day in review for Monday, Jan 27.
+When delivering a seven-day overview, run:
 
-🏃 *Activity: 81 (Good)* — 9,432 steps, 387 active cal, 2,145 total cal
-📊 *Readiness: 78 (Good)* | Stress: normal range
-😴 *Last night's sleep: 82 (Good)*
+`ouraclaw-cli summary week-overview`
 
-Nice active day — you moved well. Wind down soon and aim for a solid bedtime to keep the momentum going.
+Use the returned JSON fields `period`, `metricOrder`, `overview`, and `days` as the source data. For local inspection,
+`ouraclaw-cli summary week-overview --text` prints a compact English preview of the same recap shape.
 
-Dive deeper in the Oura app: https://cloud.ouraring.com/app/v1/home — sleep well!
+Interpret the range as completed calendar days. By default it excludes today, and each row already carries the
+next-morning Oura bundle shifted back onto the completed day being reviewed.
+
+Send only the formatted overview in the delivery language, with no extra preamble or commentary.
+
+Format rules:
+
+- Start with a short header covering the seven-day range in the delivery language.
+- Then write one concise line per day, in chronological order.
+- Build each daily line from `days[].metrics`, ordered by `metricOrder`.
+- Add `activity.steps` and `stress.daySummary` when available because they reflect the completed calendar day.
+- Use `days[].summaryLine` as English fallback context only. For non-English output, render from structured fields
+  instead of translating `summaryLine` literally.
+- Prefix attention metrics with `⚠️` on WhatsApp, Telegram, Discord, Slack, and WebChat/default. Use `ATTENTION` on
+  plain-text channels.
+- Omit metrics listed only in `missingMetrics`. If a whole day has no metrics, say briefly that data is not ready yet.
+- Optionally add one short closing takeaway using `overview.attentionDays`, `overview.topAttentionMetrics`, or
+  `overview.topStressSummaries`.
+- Keep it concise, roughly 8-10 lines total.
+- Bold only the header on channels that support bold. On plain text channels, do not use formatting markers.
+- The example below is English structure only. The real delivered message must use the requested delivery language.
+
+Example tone (plain text, structure only):
+
+```text
+Your Oura overview for Apr 4 – Apr 10.
+
+Sat: Sleep 81 | Readiness 84 | Total 6h 28m | ⚠️ Temp +0.3C
+Sun: Sleep 79 | ⚠️ Readiness 76 | Total 6h 05m | ⚠️ Lowest HR 55 bpm | ⚠️ HRV 30 ms
+Mon: Sleep 88 | Readiness 87 | Total 7h 41m | Temp +0.0C | Lowest HR 50 bpm | HRV 42 ms
+Tue: Sleep 85 | Readiness 80 | Total 6h 55m | ⚠️ Temp +0.2C | ⚠️ Lowest HR 64 bpm | HRV 18 ms
+Wed: Sleep 86 | Readiness 85 | Total 7h 12m | Temp +0.1C | Lowest HR 61 bpm | HRV 20 ms
+Thu: Sleep 83 | Readiness 82 | Total 6h 44m | ⚠️ Temp +0.2C | Lowest HR 62 bpm | HRV 19 ms | Steps 8.4k | Stress steady
+Fri: Sleep 85 | Readiness 86 | Total 6h 52m | Temp +0.1C | Lowest HR 60 bpm | HRV 21 ms | Steps 9.1k | Stress relaxed
+
+Main pattern: temperature was the most repeated attention signal this week.
 ```
 
 ## Ad-hoc Query Mapping
 
-Map natural language to endpoints:
+- "How did I sleep?" -> `ouraclaw-cli fetch daily_sleep`
+- "Show detailed sleep" -> `ouraclaw-cli fetch sleep --start-date <yesterday> --end-date <today>`
+- "What's my readiness?" -> `ouraclaw-cli fetch daily_readiness`
+- "How active was I today?" -> `ouraclaw-cli fetch daily_activity`
+- "How stressed was I?" -> `ouraclaw-cli fetch daily_stress`
+- "How was my week?" -> `ouraclaw-cli summary week-overview`
 
-| User says | Fetch |
-|-----------|-------|
-| "How did I sleep?" / "Sleep report" | `daily_sleep` + `sleep` |
-| "Am I ready to work out?" / "Readiness" | `daily_readiness` |
-| "How active was I?" / "Steps today" | `daily_activity` |
-| "Stress levels" | `daily_stress` |
-| "Full health summary" | All endpoints |
-| "Last week's sleep" / "trends" | `daily_sleep` with 7-day date range |
-| "Compare this week to last" | Two date ranges, summarize differences |
-
-When the user asks about trends or comparisons, fetch the relevant date range and summarize the pattern (improving, declining, stable) with specific numbers.
+Do not recreate Oura business logic in prompt text when the CLI already exposes it.

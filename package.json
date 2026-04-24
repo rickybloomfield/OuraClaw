@@ -1,39 +1,73 @@
 {
-  "name": "@rickybloomfield/ouraclaw",
-  "version": "0.2.0",
-  "description": "Oura Ring plugin and skill for OpenClaw",
+  "name": "@robertvii/ouraclaw-cli",
+  "version": "0.5.0",
+  "description": "Standalone CLI for Oura automation with an optional OpenClaw skill",
   "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "files": [
-    "dist",
-    "skills",
-    "openclaw.plugin.json"
-  ],
+  "bin": {
+    "ouraclaw-cli": "dist/index.js"
+  },
   "scripts": {
     "build": "tsc",
-    "dev": "tsc --watch",
-    "prepublishOnly": "npm run build"
-  },
-  "openclaw": {
-    "extensions": [
-      "./dist/index.js"
-    ]
+    "dev": "tsx src/index.ts",
+    "dev:watch": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src test",
+    "lint:fix": "eslint src test --fix",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\"",
+    "quality": "./code-quality.sh",
+    "precommit": "./code-quality.sh"
   },
   "keywords": [
-    "openclaw",
     "oura",
+    "cli",
     "health",
     "sleep",
-    "wearable"
+    "openclaw"
   ],
-  "author": "Ricky Bloomfield",
+  "author": "Robert",
   "license": "MIT",
+  "files": [
+    "dist/",
+    "skills/",
+    "docs/",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/rickybloomfield/OuraClaw"
+    "url": "git+https://github.com/robert7/ouraclaw-cli.git"
+  },
+  "bugs": {
+    "url": "https://github.com/robert7/ouraclaw-cli/issues"
+  },
+  "homepage": "https://github.com/robert7/ouraclaw-cli#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "commander": "^14.0.3"
   },
   "devDependencies": {
-    "@types/node": "^25.1.0",
-    "typescript": "^5.9.3"
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^25.5.2",
+    "@vitest/coverage-v8": "^4.1.3",
+    "eslint": "^10.2.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.4.0",
+    "prettier": "^3.8.1",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.2",
+    "typescript-eslint": "^8.58.1",
+    "vitest": "^4.1.3"
+  },
+  "engines": {
+    "node": ">=20.0.0"
   }
 }
